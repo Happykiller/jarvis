@@ -1,0 +1,437 @@
+
+============================================================
+[2026-03-28 09:41:39] [INFO] Demarrage du setup DraftDream
+[2026-03-28 09:41:39] [INFO] System.Windows.Forms charge
+[2026-03-28 09:41:39] [INFO] User32 charge
+[2026-03-28 09:41:39] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-03-28 09:41:39] [INFO] Lancement de Windows Terminal...
+[2026-03-28 09:41:39] [INFO] Windows Terminal lance
+[2026-03-28 09:41:39] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-03-28 09:41:43] [INFO] Tous les serveurs sont prets
+[2026-03-28 09:41:43] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-03-28 09:41:43] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-fullscreen --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-03-28 09:41:43] [INFO] Chrome lance
+[2026-03-28 09:41:43] [INFO] Attente chargement Chrome (4s)...
+[2026-03-28 09:41:47] [INFO] Recherche fenetre Chrome...
+[2026-03-28 09:41:47] [INFO] Fenetre Chrome trouvee : 'Connexion - FitDesk - BO - Google Chrome' (handle: 2689882)
+[2026-03-28 09:41:48] [INFO] Ouverture DevTools onglet 1
+[2026-03-28 09:41:50] [INFO] Ouverture DevTools onglet 2
+[2026-03-28 09:41:53] [INFO] Ouverture DevTools onglet 3
+[2026-03-28 09:41:57] [INFO] DevTools ouverts sur les 3 onglets
+[2026-03-28 09:41:57] [INFO] Setup termine
+
+============================================================
+[2026-03-28 09:46:02] [INFO] Demarrage du setup DraftDream
+[2026-03-28 09:46:02] [INFO] System.Windows.Forms charge
+[2026-03-28 09:46:02] [INFO] User32 charge
+[2026-03-28 09:46:02] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-03-28 09:46:02] [INFO] Lancement de Windows Terminal...
+[2026-03-28 09:46:02] [INFO] Windows Terminal lance
+[2026-03-28 09:46:02] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-03-28 09:46:08] [INFO] Tous les serveurs sont prets
+[2026-03-28 09:46:08] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-03-28 09:46:08] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-03-28 09:46:08] [INFO] Chrome lance
+[2026-03-28 09:46:08] [INFO] Attente chargement Chrome (4s)...
+[2026-03-28 09:46:13] [INFO] Recherche fenetre Chrome...
+[2026-03-28 09:46:13] [INFO] Fenetre Chrome trouvee : 'Connexion - FitDesk - BO - Google Chrome' (handle: 2099956)
+[2026-03-28 09:46:13] [INFO] Ouverture DevTools onglet 1
+[2026-03-28 09:46:16] [INFO] Ouverture DevTools onglet 2
+[2026-03-28 09:46:19] [INFO] Ouverture DevTools onglet 3
+[2026-03-28 09:46:22] [INFO] DevTools ouverts sur les 3 onglets
+[2026-03-28 09:46:22] [INFO] Setup termine
+
+============================================================
+[2026-03-29 09:18:06] [INFO] Demarrage du setup DraftDream
+[2026-03-29 09:18:06] [INFO] System.Windows.Forms charge
+[2026-03-29 09:18:06] [INFO] User32 charge
+[2026-03-29 09:18:06] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-03-29 09:18:06] [INFO] Lancement de Windows Terminal...
+[2026-03-29 09:18:06] [INFO] Windows Terminal lance
+[2026-03-29 09:18:06] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-03-29 09:18:06] [INFO] Antigravity lance
+[2026-03-29 09:18:06] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-03-29 09:18:13] [INFO] Tous les serveurs sont prets
+[2026-03-29 09:18:13] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-03-29 09:18:13] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-03-29 09:18:13] [INFO] Chrome lance
+[2026-03-29 09:18:13] [INFO] Attente chargement Chrome (4s)...
+[2026-03-29 09:18:17] [INFO] Recherche fenetre Chrome...
+[2026-03-29 09:18:17] [INFO] Fenetre Chrome trouvee : 'Connexion – FitDesk - Google Chrome' (handle: 67854)
+[2026-03-29 09:18:18] [INFO] Ouverture DevTools onglet 1
+[2026-03-29 09:18:20] [INFO] Ouverture DevTools onglet 2
+[2026-03-29 09:18:23] [INFO] Ouverture DevTools onglet 3
+[2026-03-29 09:18:27] [INFO] DevTools ouverts sur les 3 onglets
+[2026-03-29 09:18:27] [INFO] Setup termine
+
+============================================================
+[2026-03-30 08:30:00] [INFO] Demarrage du setup DraftDream
+[2026-03-30 08:30:00] [INFO] System.Windows.Forms charge
+[2026-03-30 08:30:00] [INFO] User32 charge
+[2026-03-30 08:30:00] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-03-30 08:30:00] [INFO] Lancement de Windows Terminal...
+[2026-03-30 08:30:00] [INFO] Windows Terminal lance
+[2026-03-30 08:30:00] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-03-30 08:30:00] [INFO] Antigravity lance
+[2026-03-30 08:30:00] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-03-30 08:30:06] [INFO] Tous les serveurs sont prets
+[2026-03-30 08:30:06] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-03-30 08:30:06] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-03-30 08:30:06] [INFO] Chrome lance
+[2026-03-30 08:30:06] [INFO] Attente chargement Chrome (4s)...
+[2026-03-30 08:30:11] [INFO] Recherche fenetre Chrome...
+[2026-03-30 08:30:11] [INFO] Fenetre Chrome trouvee : 'Tableau de bord - FitDesk - BO - Google Chrome' (handle: 29294660)
+[2026-03-30 08:30:11] [INFO] Ouverture DevTools onglet 1
+[2026-03-30 08:30:14] [INFO] Ouverture DevTools onglet 2
+[2026-03-30 08:30:17] [INFO] Ouverture DevTools onglet 3
+[2026-03-30 08:30:20] [INFO] DevTools ouverts sur les 3 onglets
+[2026-03-30 08:30:20] [INFO] Setup termine
+
+============================================================
+[2026-03-31 07:10:18] [INFO] Demarrage du setup DraftDream
+[2026-03-31 07:10:18] [INFO] System.Windows.Forms charge
+[2026-03-31 07:10:18] [INFO] User32 charge
+[2026-03-31 07:10:18] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-03-31 07:10:18] [INFO] Lancement de Windows Terminal...
+[2026-03-31 07:10:18] [INFO] Windows Terminal lance
+[2026-03-31 07:10:18] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-03-31 07:10:18] [INFO] Antigravity lance
+[2026-03-31 07:10:18] [INFO] Surveillance des ports : 5173, 5174, 5175
+
+============================================================
+[2026-03-31 19:00:07] [INFO] Demarrage du setup DraftDream
+[2026-03-31 19:00:07] [INFO] System.Windows.Forms charge
+[2026-03-31 19:00:07] [INFO] User32 charge
+[2026-03-31 19:00:07] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-03-31 19:00:07] [INFO] Lancement de Windows Terminal...
+[2026-03-31 19:00:07] [INFO] Windows Terminal lance
+[2026-03-31 19:00:07] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-03-31 19:00:07] [INFO] Antigravity lance
+[2026-03-31 19:00:07] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-03-31 19:01:58] [INFO] Tous les serveurs sont prets
+[2026-03-31 19:01:58] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-03-31 19:01:58] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-03-31 19:01:58] [INFO] Chrome lance
+[2026-03-31 19:01:58] [INFO] Attente chargement Chrome (4s)...
+[2026-03-31 19:02:02] [INFO] Recherche fenetre Chrome...
+[2026-03-31 19:02:02] [INFO] Fenetre Chrome trouvee : 'Connexion - FitDesk - BO - Google Chrome' (handle: 525256)
+[2026-03-31 19:02:02] [INFO] Ouverture DevTools onglet 1
+[2026-03-31 19:02:05] [INFO] Ouverture DevTools onglet 2
+[2026-03-31 19:02:08] [INFO] Ouverture DevTools onglet 3
+[2026-03-31 19:02:12] [INFO] DevTools ouverts sur les 3 onglets
+[2026-03-31 19:02:12] [INFO] Setup termine
+
+============================================================
+[2026-04-01 08:05:47] [INFO] Demarrage du setup DraftDream
+[2026-04-01 08:05:47] [INFO] System.Windows.Forms charge
+[2026-04-01 08:05:47] [INFO] User32 charge
+[2026-04-01 08:05:47] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-01 08:05:47] [INFO] Lancement de Windows Terminal...
+[2026-04-01 08:05:47] [INFO] Windows Terminal lance
+[2026-04-01 08:05:47] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-01 08:05:47] [INFO] Antigravity lance
+[2026-04-01 08:05:47] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-01 08:05:55] [INFO] Tous les serveurs sont prets
+[2026-04-01 08:05:55] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-01 08:05:55] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-01 08:05:55] [INFO] Chrome lance
+[2026-04-01 08:05:55] [INFO] Attente chargement Chrome (4s)...
+[2026-04-01 08:05:59] [INFO] Recherche fenetre Chrome...
+[2026-04-01 08:05:59] [INFO] Fenetre Chrome trouvee : 'Google Chrome' (handle: 67858)
+[2026-04-01 08:06:00] [INFO] Ouverture DevTools onglet 1
+[2026-04-01 08:06:02] [INFO] Ouverture DevTools onglet 2
+[2026-04-01 08:06:06] [INFO] Ouverture DevTools onglet 3
+[2026-04-01 08:06:09] [INFO] DevTools ouverts sur les 3 onglets
+[2026-04-01 08:06:09] [INFO] Setup termine
+
+============================================================
+[2026-04-02 19:03:49] [INFO] Demarrage du setup DraftDream
+[2026-04-02 19:03:49] [INFO] System.Windows.Forms charge
+[2026-04-02 19:03:49] [INFO] User32 charge
+[2026-04-02 19:03:49] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-02 19:03:49] [INFO] Lancement de Windows Terminal...
+[2026-04-02 19:03:49] [INFO] Windows Terminal lance
+[2026-04-02 19:03:49] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-02 19:03:49] [INFO] Antigravity lance
+[2026-04-02 19:03:49] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-02 19:03:57] [INFO] Tous les serveurs sont prets
+[2026-04-02 19:03:57] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-02 19:03:57] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-02 19:03:57] [INFO] Chrome lance
+[2026-04-02 19:03:57] [INFO] Attente chargement Chrome (4s)...
+[2026-04-02 19:04:01] [INFO] Recherche fenetre Chrome...
+[2026-04-02 19:04:01] [INFO] Fenetre Chrome trouvee : 'Le CRM conçu pour les coachs sportifs | FitDesk CRM - Google Chrome' (handle: 68046)
+[2026-04-02 19:04:02] [INFO] Ouverture DevTools onglet 1
+[2026-04-02 19:04:04] [INFO] Ouverture DevTools onglet 2
+[2026-04-02 19:04:08] [INFO] Ouverture DevTools onglet 3
+[2026-04-02 19:04:11] [INFO] DevTools ouverts sur les 3 onglets
+[2026-04-02 19:04:11] [INFO] Setup termine
+
+============================================================
+[2026-04-03 18:57:01] [INFO] Demarrage du setup DraftDream
+[2026-04-03 18:57:01] [INFO] System.Windows.Forms charge
+[2026-04-03 18:57:01] [INFO] User32 charge
+[2026-04-03 18:57:01] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-03 18:57:01] [INFO] Lancement de Windows Terminal...
+[2026-04-03 18:57:01] [INFO] Windows Terminal lance
+[2026-04-03 18:57:01] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-03 18:57:01] [INFO] Antigravity lance
+[2026-04-03 18:57:01] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-03 18:57:09] [INFO] Tous les serveurs sont prets
+[2026-04-03 18:57:09] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-03 18:57:09] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-03 18:57:09] [INFO] Chrome lance
+[2026-04-03 18:57:09] [INFO] Attente chargement Chrome (4s)...
+[2026-04-03 18:57:13] [INFO] Recherche fenetre Chrome...
+[2026-04-03 18:57:13] [INFO] Fenetre Chrome trouvee : 'Le CRM conçu pour les coachs sportifs | FitDesk CRM - Google Chrome' (handle: 67934)
+[2026-04-03 18:57:14] [INFO] Ouverture DevTools onglet 1
+[2026-04-03 18:57:16] [INFO] Ouverture DevTools onglet 2
+[2026-04-03 18:57:19] [INFO] Ouverture DevTools onglet 3
+[2026-04-03 18:57:23] [INFO] DevTools ouverts sur les 3 onglets
+[2026-04-03 18:57:23] [INFO] Setup termine
+
+============================================================
+[2026-04-04 17:45:06] [INFO] Demarrage du setup DraftDream
+[2026-04-04 17:45:06] [INFO] System.Windows.Forms charge
+[2026-04-04 17:45:06] [INFO] User32 charge
+[2026-04-04 17:45:06] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-04 17:45:06] [INFO] Lancement de Windows Terminal...
+[2026-04-04 17:45:06] [INFO] Windows Terminal lance
+[2026-04-04 17:45:06] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-04 17:45:06] [INFO] Antigravity lance
+[2026-04-04 17:45:06] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-04 17:45:13] [INFO] Tous les serveurs sont prets
+[2026-04-04 17:45:13] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-04 17:45:13] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-04 17:45:13] [INFO] Chrome lance
+[2026-04-04 17:45:13] [INFO] Attente chargement Chrome (4s)...
+[2026-04-04 17:45:17] [INFO] Recherche fenetre Chrome...
+[2026-04-04 17:45:17] [INFO] Fenetre Chrome trouvee : 'Tableau de bord - FitDesk - BO - Google Chrome' (handle: 331830)
+[2026-04-04 17:45:18] [INFO] Ouverture DevTools onglet 1
+[2026-04-04 17:45:20] [INFO] Ouverture DevTools onglet 2
+[2026-04-04 17:45:24] [INFO] Ouverture DevTools onglet 3
+[2026-04-04 17:45:27] [INFO] DevTools ouverts sur les 3 onglets
+[2026-04-04 17:45:27] [INFO] Setup termine
+
+============================================================
+[2026-04-05 08:59:53] [INFO] Demarrage du setup DraftDream
+[2026-04-05 08:59:53] [INFO] System.Windows.Forms charge
+[2026-04-05 08:59:53] [INFO] User32 charge
+[2026-04-05 08:59:53] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-05 08:59:53] [INFO] Lancement de Windows Terminal...
+[2026-04-05 08:59:53] [INFO] Windows Terminal lance
+[2026-04-05 08:59:53] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-05 08:59:54] [INFO] Antigravity lance
+[2026-04-05 08:59:54] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-05 09:00:00] [INFO] Tous les serveurs sont prets
+[2026-04-05 09:00:00] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-05 09:00:00] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-05 09:00:00] [INFO] Chrome lance
+[2026-04-05 09:00:00] [INFO] Attente chargement Chrome (4s)...
+[2026-04-05 09:00:04] [INFO] Recherche fenetre Chrome...
+[2026-04-05 09:00:04] [INFO] Fenetre Chrome trouvee : 'Tableau de bord - FitDesk - BO - Google Chrome' (handle: 68054)
+[2026-04-05 09:00:04] [INFO] Ouverture DevTools onglet 1
+[2026-04-05 09:00:07] [INFO] Ouverture DevTools onglet 2
+[2026-04-05 09:00:10] [INFO] Ouverture DevTools onglet 3
+[2026-04-05 09:00:13] [INFO] DevTools ouverts sur les 3 onglets
+[2026-04-05 09:00:13] [INFO] Setup termine
+
+============================================================
+[2026-04-06 09:40:45] [INFO] Demarrage du setup DraftDream
+[2026-04-06 09:40:45] [INFO] System.Windows.Forms charge
+[2026-04-06 09:40:45] [INFO] User32 charge
+[2026-04-06 09:40:45] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-06 09:40:45] [INFO] Lancement de Windows Terminal...
+[2026-04-06 09:40:45] [INFO] Windows Terminal lance
+[2026-04-06 09:40:45] [INFO] Lancement Antigravity sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-06 09:40:45] [INFO] Antigravity lance
+[2026-04-06 09:40:45] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-06 09:40:53] [INFO] Tous les serveurs sont prets
+[2026-04-06 09:40:53] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-06 09:40:53] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-06 09:40:53] [INFO] Chrome lance
+[2026-04-06 09:40:53] [INFO] Recherche fenetre Chrome...
+[2026-04-06 09:40:53] [INFO] Fenetre Chrome trouvee : 'WhatsApp - Google Chrome' (handle: 722086)
+[2026-04-06 09:40:54] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-06 09:41:18] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 722086)
+[2026-04-06 09:41:18] [INFO] Setup termine
+
+============================================================
+[2026-04-07 19:13:08] [INFO] Demarrage du setup DraftDream
+[2026-04-07 19:13:08] [INFO] System.Windows.Forms charge
+[2026-04-07 19:13:08] [INFO] User32 charge
+[2026-04-07 19:13:08] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-07 19:13:08] [INFO] Lancement de Windows Terminal...
+[2026-04-07 19:13:08] [INFO] Windows Terminal lance
+[2026-04-07 19:13:08] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-07 19:13:08] [INFO] VS Code lance
+[2026-04-07 19:13:08] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-07 19:13:19] [INFO] Tous les serveurs sont prets
+[2026-04-07 19:13:19] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-07 19:13:19] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-07 19:13:19] [INFO] Chrome lance
+[2026-04-07 19:13:19] [INFO] Recherche fenetre Chrome...
+[2026-04-07 19:13:19] [INFO] Fenetre Chrome trouvee : 'Meet – Ftidesk' (handle: 263876)
+[2026-04-07 19:13:20] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-07 19:13:43] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 263876)
+[2026-04-07 19:13:43] [INFO] Setup termine
+
+============================================================
+[2026-04-08 19:07:04] [INFO] Demarrage du setup DraftDream
+[2026-04-08 19:07:04] [INFO] System.Windows.Forms charge
+[2026-04-08 19:07:04] [INFO] User32 charge
+[2026-04-08 19:07:04] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-08 19:07:04] [INFO] Lancement de Windows Terminal...
+[2026-04-08 19:07:04] [INFO] Windows Terminal lance
+[2026-04-08 19:07:04] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-08 19:07:04] [INFO] VS Code lance
+[2026-04-08 19:07:04] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-08 19:09:08] [INFO] Tous les serveurs sont prets
+[2026-04-08 19:09:08] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-08 19:09:08] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-08 19:09:08] [INFO] Chrome lance
+[2026-04-08 19:09:08] [INFO] Recherche fenetre Chrome...
+[2026-04-08 19:09:08] [INFO] Fenetre Chrome trouvee : 'Connexion – FitDesk - Google Chrome' (handle: 5835192)
+[2026-04-08 19:09:08] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-08 19:09:31] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 5835192)
+[2026-04-08 19:09:31] [INFO] Setup termine
+
+============================================================
+[2026-04-09 18:57:32] [INFO] Demarrage du setup DraftDream
+[2026-04-09 18:57:32] [INFO] System.Windows.Forms charge
+[2026-04-09 18:57:32] [INFO] User32 charge
+[2026-04-09 18:57:32] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-09 18:57:32] [INFO] Lancement de Windows Terminal...
+[2026-04-09 18:57:33] [INFO] Windows Terminal lance
+[2026-04-09 18:57:33] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-09 18:57:33] [INFO] VS Code lance
+[2026-04-09 18:57:33] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-09 18:57:47] [INFO] Tous les serveurs sont prets
+[2026-04-09 18:57:47] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-09 18:57:47] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-09 18:57:47] [INFO] Chrome lance
+[2026-04-09 18:57:47] [INFO] Recherche fenetre Chrome...
+[2026-04-09 18:57:48] [INFO] Fenetre Chrome trouvee : 'Sans titre - Google Chrome' (handle: 329020)
+[2026-04-09 18:57:48] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-09 18:58:11] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 329020)
+[2026-04-09 18:58:11] [INFO] Setup termine
+
+============================================================
+[2026-04-10 18:15:41] [INFO] Demarrage du setup DraftDream
+[2026-04-10 18:15:41] [INFO] System.Windows.Forms charge
+[2026-04-10 18:15:41] [INFO] User32 charge
+[2026-04-10 18:15:41] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-10 18:15:41] [INFO] Lancement de Windows Terminal...
+[2026-04-10 18:15:41] [INFO] Windows Terminal lance
+[2026-04-10 18:15:41] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-10 18:15:41] [INFO] VS Code lance
+[2026-04-10 18:15:41] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-10 18:15:48] [INFO] Tous les serveurs sont prets
+[2026-04-10 18:15:48] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-10 18:15:48] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-10 18:15:48] [INFO] Chrome lance
+[2026-04-10 18:15:48] [INFO] Recherche fenetre Chrome...
+[2026-04-10 18:15:49] [INFO] Fenetre Chrome trouvee : 'Sans titre - Google Chrome' (handle: 67858)
+[2026-04-10 18:15:50] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-10 18:16:13] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 67858)
+[2026-04-10 18:16:13] [INFO] Setup termine
+
+============================================================
+[2026-04-11 07:45:50] [INFO] Demarrage du setup DraftDream
+[2026-04-11 07:45:50] [INFO] System.Windows.Forms charge
+[2026-04-11 07:45:51] [INFO] User32 charge
+[2026-04-11 07:45:51] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-11 07:45:51] [INFO] Lancement de Windows Terminal...
+[2026-04-11 07:45:51] [INFO] Windows Terminal lance
+[2026-04-11 07:45:51] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-11 07:45:51] [INFO] VS Code lance
+[2026-04-11 07:45:51] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-11 07:45:58] [INFO] Tous les serveurs sont prets
+[2026-04-11 07:45:58] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-11 07:45:58] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-11 07:45:58] [INFO] Chrome lance
+[2026-04-11 07:45:58] [INFO] Recherche fenetre Chrome...
+[2026-04-11 07:45:59] [INFO] Fenetre Chrome trouvee : 'Sans titre - Google Chrome' (handle: 68100)
+[2026-04-11 07:45:59] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-11 07:46:22] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 68100)
+[2026-04-11 07:46:22] [INFO] Setup termine
+
+============================================================
+[2026-04-12 08:44:40] [INFO] Demarrage du setup DraftDream
+[2026-04-12 08:44:40] [INFO] System.Windows.Forms charge
+[2026-04-12 08:44:40] [INFO] User32 charge
+[2026-04-12 08:44:40] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-12 08:44:40] [INFO] Lancement de Windows Terminal...
+[2026-04-12 08:44:40] [INFO] Windows Terminal lance
+[2026-04-12 08:44:40] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-12 08:44:40] [INFO] VS Code lance
+[2026-04-12 08:44:40] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-12 08:44:48] [INFO] Tous les serveurs sont prets
+[2026-04-12 08:44:48] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-12 08:44:48] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-12 08:44:48] [INFO] Chrome lance
+[2026-04-12 08:44:48] [INFO] Recherche fenetre Chrome...
+[2026-04-12 08:44:49] [INFO] Fenetre Chrome trouvee : 'Sans titre - Google Chrome' (handle: 68064)
+[2026-04-12 08:44:50] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-12 08:45:13] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 68064)
+[2026-04-12 08:45:13] [INFO] Setup termine
+
+============================================================
+[2026-04-13 19:05:45] [INFO] Demarrage du setup DraftDream
+[2026-04-13 19:05:45] [INFO] System.Windows.Forms charge
+[2026-04-13 19:05:45] [INFO] User32 charge
+[2026-04-13 19:05:45] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-13 19:05:45] [INFO] Lancement de Windows Terminal...
+[2026-04-13 19:05:45] [INFO] Windows Terminal lance
+[2026-04-13 19:05:45] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-13 19:05:45] [INFO] VS Code lance
+[2026-04-13 19:05:45] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-13 19:05:52] [INFO] Tous les serveurs sont prets
+[2026-04-13 19:05:52] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-13 19:05:52] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-13 19:05:52] [INFO] Chrome lance
+[2026-04-13 19:05:52] [INFO] Recherche fenetre Chrome...
+[2026-04-13 19:05:53] [INFO] Fenetre Chrome trouvee : 'Sans titre - Google Chrome' (handle: 67940)
+[2026-04-13 19:05:53] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-13 19:06:16] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 67940)
+[2026-04-13 19:06:16] [INFO] Setup termine
+
+============================================================
+[2026-04-14 19:07:05] [INFO] Demarrage du setup DraftDream
+[2026-04-14 19:07:05] [INFO] System.Windows.Forms charge
+[2026-04-14 19:07:05] [INFO] User32 charge
+[2026-04-14 19:07:05] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-14 19:07:05] [INFO] Lancement de Windows Terminal...
+[2026-04-14 19:07:05] [INFO] Windows Terminal lance
+[2026-04-14 19:07:05] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-14 19:07:05] [INFO] VS Code lance
+[2026-04-14 19:07:05] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-14 19:08:43] [INFO] Tous les serveurs sont prets
+[2026-04-14 19:08:43] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-14 19:08:43] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-14 19:08:43] [INFO] Chrome lance
+[2026-04-14 19:08:43] [INFO] Recherche fenetre Chrome...
+[2026-04-14 19:08:43] [INFO] Fenetre Chrome trouvee : '1.0.0 – FitDesk Commercialisation  – Tableau Scrum - Jira - Google Chrome' (handle: 133416)
+[2026-04-14 19:08:44] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-14 19:09:07] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 133416)
+[2026-04-14 19:09:07] [INFO] Setup termine
+
+============================================================
+[2026-04-15 19:03:46] [INFO] Demarrage du setup DraftDream
+[2026-04-15 19:03:46] [INFO] System.Windows.Forms charge
+[2026-04-15 19:03:46] [INFO] User32 charge
+[2026-04-15 19:03:46] [INFO] Ecran principal detecte : X=0 Y=0 W=2560 H=1440
+[2026-04-15 19:03:46] [INFO] Lancement de Windows Terminal...
+[2026-04-15 19:03:46] [INFO] Windows Terminal lance
+[2026-04-15 19:03:46] [INFO] Lancement VS Code sur \\wsl.localhost\Debian\home\admin\DraftDream
+[2026-04-15 19:03:46] [INFO] VS Code lance
+[2026-04-15 19:03:46] [INFO] Surveillance des ports : 5173, 5174, 5175
+[2026-04-15 19:06:19] [INFO] Tous les serveurs sont prets
+[2026-04-15 19:06:19] [INFO] Chrome trouve : C:\Program Files\Google\Chrome\Application\chrome.exe
+[2026-04-15 19:06:19] [INFO] Lancement Chrome avec args : --remote-debugging-port=9222 --user-data-dir="C:\Users\fabri\AppData\Local\Google\Chrome\User Data" --profile-directory="Profile 9" --window-position=0,0 --start-maximized --new-window http://localhost:5173/ http://localhost:5174/ http://localhost:5175/
+[2026-04-15 19:06:19] [INFO] Chrome lance
+[2026-04-15 19:06:19] [INFO] Recherche fenetre Chrome...
+[2026-04-15 19:06:19] [INFO] Fenetre Chrome trouvee : 'Dance For Me (Family Affair) - Radio Edit • NO STATIC - Google Chrome' (handle: 133550)
+[2026-04-15 19:06:20] [INFO] Attente des onglets Chrome via CDP (port 9222)...
+[2026-04-15 19:06:43] [WARN] Impossible d'ouvrir les DevTools (onglets: 0, handle: 133550)
+[2026-04-15 19:06:43] [INFO] Setup termine
