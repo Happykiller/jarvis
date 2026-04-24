@@ -4,11 +4,12 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $script:ScriptDir = $PSScriptRoot
-$script:JarvisVersion = "1.1.0"
+$script:JarvisVersion = "1.2.0"
+$script:ChromeProfileDir = "Profile 9"
 
 function Start-DevSetup {
     param(
-        [ValidateSet("bootstrap", "start", "debug", "full")]
+        [ValidateSet("start", "debug")]
         [string]$Mode,
 
         [switch]$ShowConsole
@@ -17,7 +18,8 @@ function Start-DevSetup {
     $arguments = @(
         "-ExecutionPolicy", "Bypass",
         "-File", "`"$($script:ScriptDir)\dev-setup.ps1`"",
-        "-Mode", $Mode
+        "-Mode", $Mode,
+        "-ChromeProfileDir", $script:ChromeProfileDir
     )
 
     if ($Mode -eq "debug") {
@@ -63,18 +65,6 @@ $itemDebug.Add_Click({
     Start-DevSetup -Mode "debug"
 })
 $menu.Items.Add($itemDebug) | Out-Null
-
-$itemBootstrap = New-Object System.Windows.Forms.ToolStripMenuItem("Bootstrap Deps")
-$itemBootstrap.Add_Click({
-    Start-DevSetup -Mode "bootstrap" -ShowConsole
-})
-$menu.Items.Add($itemBootstrap) | Out-Null
-
-$itemVisibleDebug = New-Object System.Windows.Forms.ToolStripMenuItem("Debug Start With Console")
-$itemVisibleDebug.Add_Click({
-    Start-DevSetup -Mode "debug" -ShowConsole
-})
-$menu.Items.Add($itemVisibleDebug) | Out-Null
 
 $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
 

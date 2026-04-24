@@ -2,7 +2,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet("bootstrap", "start", "debug", "full")]
+    [ValidateSet("start", "debug")]
     [string]$Mode = "start",
 
     [int]$StartupTimeoutSeconds = 180,
@@ -26,50 +26,25 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$JarvisVersion = "1.1.0"
+$JarvisVersion = "1.2.0"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
 $ProjectRoot = "/home/admin/DraftDream"
 $ProjectShare = "\\wsl.localhost\Debian\home\admin\DraftDream"
+$ExtraUrls = @("https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34")
+
+$UpdateAndStart = "npx npm-check-updates --target minor -u && npm install"
 
 $ServiceDefinitions = @(
-    @{
-        Name = "api"
-        Path = "$ProjectRoot/api"
-        Bootstrap = "npx npm-check-updates --target minor -u && npm install"
-        Start = "npm run start:dev"
-        Port = 3000
-        Url = $null
-    },
-    @{
-        Name = "backoffice"
-        Path = "$ProjectRoot/backoffice"
-        Bootstrap = "npx npm-check-updates --target minor -u && npm install"
-        Start = "npm run dev"
-        Port = 5174
-        Url = "http://localhost:5174/"
-    },
-    @{
-        Name = "frontoffice"
-        Path = "$ProjectRoot/frontoffice"
-        Bootstrap = "npx npm-check-updates --target minor -u && npm install"
-        Start = "npm run dev"
-        Port = 5173
-        Url = "http://localhost:5173/"
-    },
-    @{
-        Name = "showcase"
-        Path = "$ProjectRoot/showcase"
-        Bootstrap = "npx npm-check-updates --target minor -u && npm install"
-        Start = "npm run dev"
-        Port = 5175
-        Url = "http://localhost:5175/"
-    }
+    @{ Name = "api";        Path = "$ProjectRoot/api";        Start = "$UpdateAndStart && npm run start:dev"; Port = 3000; Url = $null },
+    @{ Name = "backoffice"; Path = "$ProjectRoot/backoffice"; Start = "$UpdateAndStart && npm run dev";       Port = 5174; Url = "http://localhost:5174/" },
+    @{ Name = "frontoffice";Path = "$ProjectRoot/frontoffice";Start = "$UpdateAndStart && npm run dev";       Port = 5173; Url = "http://localhost:5173/" },
+    @{ Name = "showcase";   Path = "$ProjectRoot/showcase";   Start = "$UpdateAndStart && npm run dev";       Port = 5175; Url = "http://localhost:5175/" }
 )
 
 function Write-Log {
     param(
         [string]$Message,
-        [ValidateSet("INFO", "WARN", "ERROR")]
+        [ValidateSet("INFO", "WARN", "ERROR", "STEP", "DEBUG")]
         [string]$Level = "INFO"
     )
 
@@ -77,15 +52,26 @@ function Write-Log {
     $line = "[$timestamp] [$Level] $Message"
     Add-Content -Path $LogFile -Value $line
 
-    if ($ShowConsole -or $Level -ne "INFO") {
-        Write-Host $line
+    if ($ShowConsole) {
+        switch ($Level) {
+            "ERROR" { Write-Host $line -ForegroundColor Red }
+            "WARN"  { Write-Host $line -ForegroundColor Yellow }
+            "STEP"  { Write-Host $line -ForegroundColor Cyan }
+            "DEBUG" { Write-Host $line -ForegroundColor DarkGray }
+            default { Write-Host $line }
+        }
+    } elseif ($Level -in @("WARN", "ERROR")) {
+        Write-Host $line -ForegroundColor $(if ($Level -eq "ERROR") { "Red" } else { "Yellow" })
     }
 }
 
 function Initialize-Log {
     Add-Content -Path $LogFile -Value ""
     Add-Content -Path $LogFile -Value ("=" * 60)
-    Write-Log "Starting DraftDream setup v$JarvisVersion in mode '$Mode'"
+    Write-Log "Jarvis v$JarvisVersion | mode=$Mode | screen=$($env:COMPUTERNAME)" "STEP"
+    Write-Log "ChromeUserDataDir : $ChromeUserDataDir"
+    Write-Log "ChromeProfileDir  : $(if ($ChromeProfileDir) { $ChromeProfileDir } else { '(default)' })"
+    Write-Log "ProjectRoot       : $ProjectRoot"
 }
 
 function Enter-SetupMutex {
@@ -93,11 +79,9 @@ function Enter-SetupMutex {
     $mutex = New-Object System.Threading.Mutex($true, "Local\JarvisDraftDreamSetup", [ref]$createdNew)
 
     if (-not $createdNew) {
-        Write-Log "Another Jarvis setup instance is already running" "WARN"
         throw "Another setup instance is already running"
     }
 
-    Write-Log "Setup mutex acquired"
     return $mutex
 }
 
@@ -149,53 +133,29 @@ function New-WslCommand {
         [string]$Command
     )
 
-    return "cd $WorkingDirectory && $Command; exec bash"
+    return "cd $WorkingDirectory && $Command && exec bash || exec bash"
 }
 
 function Start-TerminalTabs {
-    param(
-        [ValidateSet("bootstrap", "start")]
-        [string]$TerminalMode,
-
-        [hashtable]$Screen
-    )
+    param([hashtable]$Screen)
 
     if ($SkipTerminal) {
         Write-Log "Skipping Windows Terminal launch"
         return
     }
 
-    $sharedTabs = @(
-        @{
-            Title = "LazyGit"
-            Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "lazygit"
-        },
-        @{
-            Title = "Claude"
-            Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "claude --enable-auto-mode"
-        },
-        @{
-            Title = "sandbox"
-            Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "true"
-        }
+    $tabs = @(
+        @{ Title = "LazyGit";  Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "lazygit" },
+        @{ Title = "Claude";   Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "claude --enable-auto-mode" }
     )
-
-    $serviceTabs = foreach ($service in $ServiceDefinitions) {
-        $command = if ($TerminalMode -eq "bootstrap") { $service.Bootstrap } else { $service.Start }
-        @{
-            Title = $service.Name
-            Command = New-WslCommand -WorkingDirectory $service.Path -Command $command
-        }
+    $tabs += foreach ($service in $ServiceDefinitions) {
+        @{ Title = $service.Name; Command = New-WslCommand -WorkingDirectory $service.Path -Command $service.Start }
     }
+    $tabs += @{ Title = "sandbox"; Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "true" }
 
-    $tabs = @()
-    if ($TerminalMode -eq "start") {
-        $tabs += $sharedTabs[0]
-        $tabs += $sharedTabs[1]
-    }
-    $tabs += $serviceTabs
-    if ($TerminalMode -eq "start") {
-        $tabs += $sharedTabs[2]
+    Write-Log "Terminal tabs=$($tabs.Count)" "STEP"
+    foreach ($tab in $tabs) {
+        Write-Log ("  [" + $tab.Title + "] " + $tab.Command) "DEBUG"
     }
 
     $wtArgs = @("--maximized", "--pos", "$($Screen.X),$($Screen.Y)")
@@ -209,7 +169,6 @@ function Start-TerminalTabs {
         $wtArgs += @(
             "new-tab",
             "--title", $tab.Title,
-            "--suppressApplicationTitle",
             "--profile", "Debian",
             "--",
             "bash", "-lic", $tab.Command
@@ -219,7 +178,7 @@ function Start-TerminalTabs {
     }
 
     try {
-        Write-Log "Launching Windows Terminal in mode '$TerminalMode'"
+        Write-Log "Launching Windows Terminal" "STEP"
         & wt @wtArgs
         Write-Log "Windows Terminal launched"
     } catch {
@@ -305,9 +264,9 @@ function Get-ChromePath {
 }
 
 function Get-ChromeUserDataArgs {
-    $result = @("--user-data-dir=$ChromeUserDataDir")
+    $result = @("--user-data-dir=`"$ChromeUserDataDir`"")
     if ($ChromeProfileDir) {
-        $result += "--profile-directory=$ChromeProfileDir"
+        $result += "--profile-directory=`"$ChromeProfileDir`""
     }
     return $result
 }
@@ -406,7 +365,7 @@ function Start-ChromeForServices {
         throw "Chrome not found"
     }
 
-    $urls = @($ServiceDefinitions | Where-Object { $null -ne $_.Url } | ForEach-Object { $_.Url })
+    $urls = $ExtraUrls + @($ServiceDefinitions | Where-Object { $null -ne $_.Url } | ForEach-Object { $_.Url })
 
     $chromeArgs = @(
         "--new-window",
@@ -441,39 +400,43 @@ function Start-ChromeForServices {
     Open-ChromeDevTools -Port $ChromeDebugPort -WindowHandle $chromeWindow -Tabs $tabs[0..($urls.Count - 1)]
 }
 
-Initialize-Log
 $setupMutex = $null
 
 try {
     $setupMutex = Enter-SetupMutex
+    Initialize-Log
     Ensure-Assembly
     $screen = Get-ScreenPosition
 
     switch ($Mode) {
-        "bootstrap" {
-            Start-TerminalTabs -TerminalMode "bootstrap" -Screen $screen
-            Write-Log "Bootstrap mode completed"
-        }
-
         "start" {
-            Start-TerminalTabs -TerminalMode "start" -Screen $screen
+            Write-Log "=== PHASE: Terminal ===" "STEP"
+            Start-TerminalTabs -Screen $screen
+            Write-Log "=== PHASE: Editor ===" "STEP"
             Start-CodeEditor
+            Write-Log "=== PHASE: Port wait ===" "STEP"
             Wait-ForPorts -Ports @($ServiceDefinitions.Port) -TimeoutSeconds $StartupTimeoutSeconds
+            Write-Log "=== PHASE: Chrome ===" "STEP"
             Start-ChromeForServices -Screen $screen -EnableDevTools:$OpenDevTools
-            Write-Log "Start mode completed"
+            Write-Log "Start mode completed" "STEP"
         }
 
         "debug" {
-            Start-TerminalTabs -TerminalMode "start" -Screen $screen
+            Write-Log "=== PHASE: Terminal ===" "STEP"
+            Start-TerminalTabs -Screen $screen
+            Write-Log "=== PHASE: Editor ===" "STEP"
             Start-CodeEditor
+            Write-Log "=== PHASE: Port wait ===" "STEP"
             Wait-ForPorts -Ports @($ServiceDefinitions.Port) -TimeoutSeconds $StartupTimeoutSeconds
+            Write-Log "=== PHASE: Chrome (DevTools) ===" "STEP"
             Start-ChromeForServices -Screen $screen -EnableDevTools:$true
-            Write-Log "Debug mode completed"
+            Write-Log "Debug mode completed" "STEP"
         }
 
         "full" {
+            Write-Log "=== PHASE: Bootstrap ===" "STEP"
             Start-TerminalTabs -TerminalMode "bootstrap" -Screen $screen
-            Write-Log "Bootstrap tabs launched. Run start or debug after dependencies are installed."
+            Write-Log "Bootstrap tabs launched. Run start or debug after deps are installed." "STEP"
         }
     }
 } catch {
