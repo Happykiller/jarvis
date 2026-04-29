@@ -146,7 +146,7 @@ function Start-TerminalTabs {
 
     $tabs = @(
         @{ Title = "LazyGit";  Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "lazygit" },
-        @{ Title = "Claude";   Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "claude --enable-auto-mode" }
+        @{ Title = "Claude";   Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "claude" }
     )
     $tabs += foreach ($service in $ServiceDefinitions) {
         @{ Title = $service.Name; Command = New-WslCommand -WorkingDirectory $service.Path -Command $service.Start }

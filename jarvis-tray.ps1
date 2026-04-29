@@ -19,7 +19,7 @@ function Start-DevSetup {
         "-ExecutionPolicy", "Bypass",
         "-File", "`"$($script:ScriptDir)\dev-setup.ps1`"",
         "-Mode", $Mode,
-        "-ChromeProfileDir", $script:ChromeProfileDir
+        "-ChromeProfileDir", "`"$($script:ChromeProfileDir)`""
     )
 
     if ($Mode -eq "debug") {
