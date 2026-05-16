@@ -34,10 +34,14 @@ $ExtraUrls = @("https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC
 
 $UpdateAndStart = "git pull && npx npm-check-updates --target minor -u && npm install"
 
-$DockerServices = @(
-    @{ Name = "eudora";      Path = "$ProjectRoot/eudora";      Description = "Mail";    Network = $null          },
-    @{ Name = "alexstrasza"; Path = "$ProjectRoot/alexstrasza"; Description = "Redis";   Network = "alexstrasza"  },
-    @{ Name = "afkah";       Path = "$ProjectRoot/afkah";       Description = "MongoDB"; Network = "afkah"        }
+$DockerParallelServices = @(
+    @{ Name = "punjabi";     Path = "/home/admin/punjabi";            Command = "make up";     Network = $null         },
+    @{ Name = "alexstrasza"; Path = "/home/admin/valtys/alexstrasza"; Command = "make dev-up"; Network = "alexstrasza" },
+    @{ Name = "afkah";       Path = "/home/admin/valtys/afkah";       Command = "make dev-up"; Network = "afkah"       }
+)
+
+$DockerSequentialServices = @(
+    @{ Name = "eudora"; Path = "/home/admin/valtys/eudora"; Command = "docker compose up eudora-dev eudora-worker -d"; WaitHealthy = "alexstrasza"; HealthTimeoutSeconds = 60 }
 )
 
 $ServiceDefinitions = @(
@@ -143,26 +147,62 @@ function New-WslCommand {
 }
 
 function Start-DockerServices {
-    foreach ($svc in $DockerServices) {
-        Write-Log "Docker $($svc.Name) ($($svc.Description))" "STEP"
-        try {
-            if ($svc.Network) {
-                wsl bash -c "docker network create '$($svc.Network)' 2>/dev/null; true"
-                Write-Log "Docker $($svc.Name): network '$($svc.Network)' ensured"
-            }
+    # Phase 1 — punjabi, alexstrasza, afkah en parallèle
+    Write-Log "Docker Phase 1 (parallel): $($DockerParallelServices.Name -join ', ')" "STEP"
 
-            $psOut = wsl bash -c "cd '$($svc.Path)' && docker compose ps 2>/dev/null"
-            if ($psOut -match "running|Up ") {
-                Write-Log "Docker $($svc.Name): already running"
-            } else {
-                Write-Log "Docker $($svc.Name): starting..."
-                $out = wsl bash -c "cd '$($svc.Path)' && docker compose up -d 2>&1"
-                Write-Log "Docker $($svc.Name): $out"
+    $jobs = [ordered]@{}
+    foreach ($svc in $DockerParallelServices) {
+        $jobs[$svc.Name] = Start-Job -ArgumentList $svc.Path, $svc.Network, $svc.Command -ScriptBlock {
+            param($path, $network, $cmd)
+            if ($network) {
+                wsl bash -c "docker network create '$network' 2>/dev/null; true"
             }
-        } catch {
-            Write-Log "Docker $($svc.Name): $_" "WARN"
+            wsl bash -c "cd '$path' && $cmd 2>&1"
         }
     }
+
+    $jobs.Values | Wait-Job | Out-Null
+
+    $failed = @()
+    foreach ($name in $jobs.Keys) {
+        $job = $jobs[$name]
+        $out = (Receive-Job -Job $job | Out-String).Trim()
+        $state = $job.State
+        Remove-Job -Job $job
+        Write-Log "Docker ${name}: $out"
+        if ($state -eq "Failed") { $failed += $name }
+    }
+    if ($failed.Count -gt 0) {
+        throw "Docker Phase 1 failed for: $($failed -join ', ')"
+    }
+
+    # Phase 2 — services séquentiels avec dépendances
+    foreach ($svc in $DockerSequentialServices) {
+        if ($svc.WaitHealthy) {
+            Write-Log "Waiting for $($svc.WaitHealthy) healthcheck (timeout: $($svc.HealthTimeoutSeconds)s)..." "STEP"
+            $deadline = (Get-Date).AddSeconds($svc.HealthTimeoutSeconds)
+            $healthy = $false
+            while ((Get-Date) -lt $deadline) {
+                $health = (wsl bash -c "docker inspect $($svc.WaitHealthy) --format '{{.State.Health.Status}}' 2>/dev/null").Trim()
+                Write-Log "$($svc.WaitHealthy) health: $health" "DEBUG"
+                if ($health -eq "healthy") { $healthy = $true; break }
+                Start-Sleep -Seconds 2
+            }
+            if (-not $healthy) {
+                throw "Timeout: $($svc.WaitHealthy) did not become healthy within $($svc.HealthTimeoutSeconds)s"
+            }
+            Write-Log "$($svc.WaitHealthy): healthy"
+        }
+
+        Write-Log "Docker $($svc.Name): starting..." "STEP"
+        $out = (wsl bash -c "cd '$($svc.Path)' && $($svc.Command) 2>&1" | Out-String).Trim()
+        Write-Log "Docker $($svc.Name): $out"
+    }
+
+    # État final
+    Write-Log "Docker containers:" "STEP"
+    $state = (wsl bash -c "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null" | Out-String).Trim()
+    Write-Log $state
 }
 
 function Start-TerminalTabs {
