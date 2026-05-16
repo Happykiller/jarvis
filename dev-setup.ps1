@@ -26,19 +26,29 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$JarvisVersion = "1.2.0"
+$JarvisVersion = "1.3.0"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
-$ProjectRoot = "/home/admin/DraftDream"
-$ProjectShare = "\\wsl.localhost\Debian\home\admin\DraftDream"
+$ProjectRoot = "/home/admin/valtys"
+$ProjectShare = "\\wsl.localhost\Debian\home\admin\valtys"
 $ExtraUrls = @("https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34")
 
-$UpdateAndStart = "npx npm-check-updates --target minor -u && npm install"
+$UpdateAndStart = "git pull && npx npm-check-updates --target minor -u && npm install"
+
+$DockerParallelServices = @(
+    @{ Name = "punjabi";     Path = "/home/admin/punjabi";            Command = "make up";     Network = $null         },
+    @{ Name = "alexstrasza"; Path = "/home/admin/valtys/alexstrasza"; Command = "make dev-up"; Network = "alexstrasza" },
+    @{ Name = "afkah";       Path = "/home/admin/valtys/afkah";       Command = "make dev-up"; Network = "afkah"       }
+)
+
+$DockerSequentialServices = @(
+    @{ Name = "eudora"; Path = "/home/admin/valtys/eudora"; Command = "docker compose up eudora-dev eudora-worker -d"; WaitHealthy = "alexstrasza"; HealthTimeoutSeconds = 60 }
+)
 
 $ServiceDefinitions = @(
-    @{ Name = "api";        Path = "$ProjectRoot/api";        Start = "$UpdateAndStart && npm run start:dev"; Port = 3000; Url = $null },
-    @{ Name = "backoffice"; Path = "$ProjectRoot/backoffice"; Start = "$UpdateAndStart && npm run dev";       Port = 5174; Url = "http://localhost:5174/" },
-    @{ Name = "frontoffice";Path = "$ProjectRoot/frontoffice";Start = "$UpdateAndStart && npm run dev";       Port = 5173; Url = "http://localhost:5173/" },
-    @{ Name = "showcase";   Path = "$ProjectRoot/showcase";   Start = "$UpdateAndStart && npm run dev";       Port = 5175; Url = "http://localhost:5175/" }
+    @{ Name = "api";        Path = "$ProjectRoot/onyxia";        Start = "$UpdateAndStart && npm run start:dev"; Port = 3000; Url = $null },
+    @{ Name = "backoffice"; Path = "$ProjectRoot/sylvanas"; Start = "$UpdateAndStart && npm run dev";       Port = 5174; Url = "http://localhost:5174/" },
+    @{ Name = "frontoffice";Path = "$ProjectRoot/tess";Start = "$UpdateAndStart && npm run dev";       Port = 5173; Url = "http://localhost:5173/" },
+    @{ Name = "showcase";   Path = "$ProjectRoot/xyrella";   Start = "$UpdateAndStart && npm run dev";       Port = 5175; Url = "http://localhost:5175/" }
 )
 
 function Write-Log {
@@ -134,6 +144,65 @@ function New-WslCommand {
     )
 
     return "cd $WorkingDirectory && $Command && exec bash || exec bash"
+}
+
+function Start-DockerServices {
+    # Phase 1 — punjabi, alexstrasza, afkah en parallèle
+    Write-Log "Docker Phase 1 (parallel): $($DockerParallelServices.Name -join ', ')" "STEP"
+
+    $jobs = [ordered]@{}
+    foreach ($svc in $DockerParallelServices) {
+        $jobs[$svc.Name] = Start-Job -ArgumentList $svc.Path, $svc.Network, $svc.Command -ScriptBlock {
+            param($path, $network, $cmd)
+            if ($network) {
+                wsl bash -c "docker network create '$network' 2>/dev/null; true"
+            }
+            wsl bash -c "cd '$path' && $cmd 2>&1"
+        }
+    }
+
+    $jobs.Values | Wait-Job | Out-Null
+
+    $failed = @()
+    foreach ($name in $jobs.Keys) {
+        $job = $jobs[$name]
+        $out = (Receive-Job -Job $job | Out-String).Trim()
+        $state = $job.State
+        Remove-Job -Job $job
+        Write-Log "Docker ${name}: $out"
+        if ($state -eq "Failed") { $failed += $name }
+    }
+    if ($failed.Count -gt 0) {
+        throw "Docker Phase 1 failed for: $($failed -join ', ')"
+    }
+
+    # Phase 2 — services séquentiels avec dépendances
+    foreach ($svc in $DockerSequentialServices) {
+        if ($svc.WaitHealthy) {
+            Write-Log "Waiting for $($svc.WaitHealthy) healthcheck (timeout: $($svc.HealthTimeoutSeconds)s)..." "STEP"
+            $deadline = (Get-Date).AddSeconds($svc.HealthTimeoutSeconds)
+            $healthy = $false
+            while ((Get-Date) -lt $deadline) {
+                $health = (wsl bash -c "docker inspect $($svc.WaitHealthy) --format '{{.State.Health.Status}}' 2>/dev/null").Trim()
+                Write-Log "$($svc.WaitHealthy) health: $health" "DEBUG"
+                if ($health -eq "healthy") { $healthy = $true; break }
+                Start-Sleep -Seconds 2
+            }
+            if (-not $healthy) {
+                throw "Timeout: $($svc.WaitHealthy) did not become healthy within $($svc.HealthTimeoutSeconds)s"
+            }
+            Write-Log "$($svc.WaitHealthy): healthy"
+        }
+
+        Write-Log "Docker $($svc.Name): starting..." "STEP"
+        $out = (wsl bash -c "cd '$($svc.Path)' && $($svc.Command) 2>&1" | Out-String).Trim()
+        Write-Log "Docker $($svc.Name): $out"
+    }
+
+    # État final
+    Write-Log "Docker containers:" "STEP"
+    $state = (wsl bash -c "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null" | Out-String).Trim()
+    Write-Log $state
 }
 
 function Start-TerminalTabs {
@@ -410,6 +479,8 @@ try {
 
     switch ($Mode) {
         "start" {
+            Write-Log "=== PHASE: Docker ===" "STEP"
+            Start-DockerServices
             Write-Log "=== PHASE: Terminal ===" "STEP"
             Start-TerminalTabs -Screen $screen
             Write-Log "=== PHASE: Editor ===" "STEP"
@@ -422,6 +493,8 @@ try {
         }
 
         "debug" {
+            Write-Log "=== PHASE: Docker ===" "STEP"
+            Start-DockerServices
             Write-Log "=== PHASE: Terminal ===" "STEP"
             Start-TerminalTabs -Screen $screen
             Write-Log "=== PHASE: Editor ===" "STEP"
