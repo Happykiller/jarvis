@@ -4,7 +4,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $script:ScriptDir = $PSScriptRoot
-$script:JarvisVersion = "1.2.0"
+$script:JarvisVersion = "1.3.0"
 $script:ChromeProfileDir = "Profile 9"
 
 function Start-DevSetup {
@@ -53,18 +53,12 @@ $menu.Items.Add($itemVersion) | Out-Null
 
 $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
 
-$itemStart = New-Object System.Windows.Forms.ToolStripMenuItem("Quick Start")
+$itemStart = New-Object System.Windows.Forms.ToolStripMenuItem("Start")
 $itemStart.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
 $itemStart.Add_Click({
     Start-DevSetup -Mode "start"
 })
 $menu.Items.Add($itemStart) | Out-Null
-
-$itemDebug = New-Object System.Windows.Forms.ToolStripMenuItem("Debug Start")
-$itemDebug.Add_Click({
-    Start-DevSetup -Mode "debug"
-})
-$menu.Items.Add($itemDebug) | Out-Null
 
 $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
 

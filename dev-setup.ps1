@@ -26,19 +26,25 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$JarvisVersion = "1.2.0"
+$JarvisVersion = "1.3.0"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
-$ProjectRoot = "/home/admin/DraftDream"
-$ProjectShare = "\\wsl.localhost\Debian\home\admin\DraftDream"
+$ProjectRoot = "/home/admin/valtys"
+$ProjectShare = "\\wsl.localhost\Debian\home\admin\valtys"
 $ExtraUrls = @("https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34")
 
-$UpdateAndStart = "npx npm-check-updates --target minor -u && npm install"
+$UpdateAndStart = "git pull && npx npm-check-updates --target minor -u && npm install"
+
+$DockerServices = @(
+    @{ Name = "eudora";      Path = "$ProjectRoot/eudora";      Description = "Mail"    },
+    @{ Name = "alexstrasza"; Path = "$ProjectRoot/alexstrasza"; Description = "Redis"   },
+    @{ Name = "afkah";       Path = "$ProjectRoot/afkah";       Description = "MongoDB" }
+)
 
 $ServiceDefinitions = @(
-    @{ Name = "api";        Path = "$ProjectRoot/api";        Start = "$UpdateAndStart && npm run start:dev"; Port = 3000; Url = $null },
-    @{ Name = "backoffice"; Path = "$ProjectRoot/backoffice"; Start = "$UpdateAndStart && npm run dev";       Port = 5174; Url = "http://localhost:5174/" },
-    @{ Name = "frontoffice";Path = "$ProjectRoot/frontoffice";Start = "$UpdateAndStart && npm run dev";       Port = 5173; Url = "http://localhost:5173/" },
-    @{ Name = "showcase";   Path = "$ProjectRoot/showcase";   Start = "$UpdateAndStart && npm run dev";       Port = 5175; Url = "http://localhost:5175/" }
+    @{ Name = "api";        Path = "$ProjectRoot/onyxia";        Start = "$UpdateAndStart && npm run start:dev"; Port = 3000; Url = $null },
+    @{ Name = "backoffice"; Path = "$ProjectRoot/sylvanas"; Start = "$UpdateAndStart && npm run dev";       Port = 5174; Url = "http://localhost:5174/" },
+    @{ Name = "frontoffice";Path = "$ProjectRoot/tess";Start = "$UpdateAndStart && npm run dev";       Port = 5173; Url = "http://localhost:5173/" },
+    @{ Name = "showcase";   Path = "$ProjectRoot/xyrella";   Start = "$UpdateAndStart && npm run dev";       Port = 5175; Url = "http://localhost:5175/" }
 )
 
 function Write-Log {
@@ -134,6 +140,21 @@ function New-WslCommand {
     )
 
     return "cd $WorkingDirectory && $Command && exec bash || exec bash"
+}
+
+function Start-DockerServices {
+    foreach ($svc in $DockerServices) {
+        Write-Log "Checking Docker service: $($svc.Name) ($($svc.Description))" "STEP"
+
+        $status = wsl bash -lc "cd '$($svc.Path)' && docker compose ps --status running -q 2>/dev/null | grep -q . && echo running || echo stopped" 2>&1
+        if ($status -match "running") {
+            Write-Log "$($svc.Name): already running"
+        } else {
+            Write-Log "$($svc.Name): starting..."
+            $out = wsl bash -lc "cd '$($svc.Path)' && docker compose up -d 2>&1"
+            Write-Log "$($svc.Name): $out"
+        }
+    }
 }
 
 function Start-TerminalTabs {
@@ -410,6 +431,8 @@ try {
 
     switch ($Mode) {
         "start" {
+            Write-Log "=== PHASE: Docker ===" "STEP"
+            Start-DockerServices
             Write-Log "=== PHASE: Terminal ===" "STEP"
             Start-TerminalTabs -Screen $screen
             Write-Log "=== PHASE: Editor ===" "STEP"
@@ -422,6 +445,8 @@ try {
         }
 
         "debug" {
+            Write-Log "=== PHASE: Docker ===" "STEP"
+            Start-DockerServices
             Write-Log "=== PHASE: Terminal ===" "STEP"
             Start-TerminalTabs -Screen $screen
             Write-Log "=== PHASE: Editor ===" "STEP"
