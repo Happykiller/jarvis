@@ -35,9 +35,9 @@ $ExtraUrls = @("https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC
 $UpdateAndStart = "git pull && npx npm-check-updates --target minor -u && npm install"
 
 $DockerServices = @(
-    @{ Name = "eudora";      Path = "$ProjectRoot/eudora";      Description = "Mail"    },
-    @{ Name = "alexstrasza"; Path = "$ProjectRoot/alexstrasza"; Description = "Redis"   },
-    @{ Name = "afkah";       Path = "$ProjectRoot/afkah";       Description = "MongoDB" }
+    @{ Name = "eudora";      Path = "$ProjectRoot/eudora";      Description = "Mail";    Network = $null          },
+    @{ Name = "alexstrasza"; Path = "$ProjectRoot/alexstrasza"; Description = "Redis";   Network = "alexstrasza"  },
+    @{ Name = "afkah";       Path = "$ProjectRoot/afkah";       Description = "MongoDB"; Network = "afkah"        }
 )
 
 $ServiceDefinitions = @(
@@ -144,15 +144,23 @@ function New-WslCommand {
 
 function Start-DockerServices {
     foreach ($svc in $DockerServices) {
-        Write-Log "Checking Docker service: $($svc.Name) ($($svc.Description))" "STEP"
+        Write-Log "Docker $($svc.Name) ($($svc.Description))" "STEP"
+        try {
+            if ($svc.Network) {
+                wsl bash -c "docker network create '$($svc.Network)' 2>/dev/null; true"
+                Write-Log "Docker $($svc.Name): network '$($svc.Network)' ensured"
+            }
 
-        $status = wsl bash -lc "cd '$($svc.Path)' && docker compose ps --status running -q 2>/dev/null | grep -q . && echo running || echo stopped" 2>&1
-        if ($status -match "running") {
-            Write-Log "$($svc.Name): already running"
-        } else {
-            Write-Log "$($svc.Name): starting..."
-            $out = wsl bash -lc "cd '$($svc.Path)' && docker compose up -d 2>&1"
-            Write-Log "$($svc.Name): $out"
+            $psOut = wsl bash -c "cd '$($svc.Path)' && docker compose ps 2>/dev/null"
+            if ($psOut -match "running|Up ") {
+                Write-Log "Docker $($svc.Name): already running"
+            } else {
+                Write-Log "Docker $($svc.Name): starting..."
+                $out = wsl bash -c "cd '$($svc.Path)' && docker compose up -d 2>&1"
+                Write-Log "Docker $($svc.Name): $out"
+            }
+        } catch {
+            Write-Log "Docker $($svc.Name): $_" "WARN"
         }
     }
 }
