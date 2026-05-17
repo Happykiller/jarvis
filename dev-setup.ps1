@@ -11,7 +11,7 @@ param(
 
     [string]$ChromeUserDataDir = "$env:LOCALAPPDATA\Google\Chrome\User Data",
 
-    [string]$ChromeProfileDir = "",
+    [string]$ChromeProfileDir = "Profile 10",
 
     [switch]$ShowConsole,
 
@@ -26,7 +26,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$JarvisVersion = "1.3.0"
+$JarvisVersion = "1.3.1"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
 $ProjectRoot = "/home/admin/valtys"
 $ProjectShare = "\\wsl.localhost\Debian\home\admin\valtys"
