@@ -1,3 +1,5 @@
-.claude
+.claude/settings.local.json
+.claude/worktrees
+.claude/stop-hook-ran.flag
 .codex
 dev-setup.log

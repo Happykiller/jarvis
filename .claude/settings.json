@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"C:\\DATA\\projects\\jarvis\\.claude\\stop-hook.ps1\"",
+            "timeout": 30,
+            "statusMessage": "Reviewing session learnings..."
+          }
+        ]
+      }
+    ]
+  }
+}
