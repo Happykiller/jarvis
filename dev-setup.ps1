@@ -26,11 +26,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$JarvisVersion = "1.3.1"
+$JarvisVersion = "1.4.0"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
 $ProjectRoot = "/home/admin/valtys"
 $ProjectShare = "\\wsl.localhost\Debian\home\admin\valtys"
-$ExtraUrls = @("https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34")
+$ExtraUrls = @(
+    "https://mail.google.com/",
+    "https://bo.fitdesk.io/",
+    "https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34"
+)
 
 $UpdateAndStart = "git pull && npx npm-check-updates --target minor -u && npm install"
 
@@ -214,7 +218,7 @@ function Start-TerminalTabs {
     }
 
     $tabs = @(
-        @{ Title = "LazyGit";  Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "lazygit" },
+        @{ Title = "git";      Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "true" },
         @{ Title = "Claude";   Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "claude" }
     )
     $tabs += foreach ($service in $ServiceDefinitions) {
@@ -291,30 +295,102 @@ function Test-Port {
 function Wait-ForPorts {
     param(
         [int[]]$Ports,
-        [int]$TimeoutSeconds
+        [int]$TimeoutSeconds,
+        [hashtable]$Screen
     )
 
-    Write-Log "Waiting for ports: $($Ports -join ', ') with timeout ${TimeoutSeconds}s"
+    Write-Log "Waiting for ports: $($Ports -join ', ') with timeout ${TimeoutSeconds}s" "STEP"
 
-    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $portNames = @{}
+    foreach ($svc in $ServiceDefinitions) {
+        $portNames[$svc.Port] = $svc.Name
+    }
 
-    while ((Get-Date) -lt $deadline) {
-        $pendingPorts = @($Ports | Where-Object { -not (Test-Port -Port $_) })
-        if ($pendingPorts.Count -eq 0) {
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "Jarvis — Démarrage des services"
+    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedToolWindow
+    $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
+    $form.TopMost = $true
+    $form.ShowInTaskbar = $false
+    $form.Width = 360
+    $form.Height = 50 + ($Ports.Count * 28) + 16
+
+    $formX = $Screen.X + $Screen.Width - $form.Width - 16
+    $formY = $Screen.Y + $Screen.Height - $form.Height - 48
+    $form.Location = New-Object System.Drawing.Point($formX, $formY)
+
+    $labels = @{}
+    $yPos = 8
+    foreach ($port in $Ports) {
+        $svcName = if ($portNames.ContainsKey($port)) { $portNames[$port] } else { "port $port" }
+        $lbl = New-Object System.Windows.Forms.Label
+        $lbl.AutoSize = $false
+        $lbl.Width = 330
+        $lbl.Height = 22
+        $lbl.Location = New-Object System.Drawing.Point(12, $yPos)
+        $lbl.Text = "$svcName  :$port  —  en attente..."
+        $lbl.ForeColor = [System.Drawing.Color]::DimGray
+        $form.Controls.Add($lbl)
+        $labels[$port] = $lbl
+        $yPos += 26
+    }
+
+    $startTime = Get-Date
+    $deadline = $startTime.AddSeconds($TimeoutSeconds)
+
+    $timer = New-Object System.Windows.Forms.Timer
+    $timer.Interval = 1000
+
+    $tickHandler = {
+        $pending = @()
+        foreach ($port in $Ports) {
+            $lbl = $labels[$port]
+            $svcName = if ($portNames.ContainsKey($port)) { $portNames[$port] } else { "port $port" }
+            if (Test-Port -Port $port) {
+                $lbl.Text = "$svcName  :$port  —  pret"
+                $lbl.ForeColor = [System.Drawing.Color]::Green
+            } else {
+                $elapsed   = [int]((Get-Date) - $startTime).TotalSeconds
+                $remaining = [Math]::Max(0, [int]($deadline - (Get-Date)).TotalSeconds)
+                $lbl.Text  = "$svcName  :$port  —  ${elapsed}s  (reste ${remaining}s)"
+                $lbl.ForeColor = [System.Drawing.Color]::DimGray
+                $pending += $port
+            }
+        }
+
+        if ($pending.Count -eq 0) {
+            $timer.Stop()
             Write-Log "All expected ports are ready"
+            Start-Sleep -Milliseconds 700
+            $form.Close()
             return
         }
 
-        if ($ShowConsole) {
-            Write-Host ("Pending ports: " + ($pendingPorts -join ", "))
+        if ((Get-Date) -gt $deadline) {
+            $timer.Stop()
+            foreach ($port in $pending) {
+                $lbl = $labels[$port]
+                $svcName = if ($portNames.ContainsKey($port)) { $portNames[$port] } else { "port $port" }
+                $lbl.Text = "$svcName  :$port  —  TIMEOUT"
+                $lbl.ForeColor = [System.Drawing.Color]::Red
+                Write-Log "Timeout: $svcName (:$port) did not respond" "ERROR"
+            }
         }
+    }.GetNewClosure()
 
-        Start-Sleep -Seconds 2
-    }
+    $timer.Add_Tick($tickHandler)
+    $form.Add_Shown({ $timer.Start() }.GetNewClosure())
+    $form.ShowDialog() | Out-Null
+    $timer.Dispose()
+    $form.Dispose()
 
     $stillPending = @($Ports | Where-Object { -not (Test-Port -Port $_) })
-    Write-Log "Timeout reached while waiting for ports: $($stillPending -join ', ')" "ERROR"
-    throw "Startup timeout reached"
+    if ($stillPending.Count -gt 0) {
+        $names = $stillPending | ForEach-Object {
+            if ($portNames.ContainsKey($_)) { "$($portNames[$_]) (:$_)" } else { "port $_" }
+        }
+        throw "Startup timeout: $($names -join ', ') did not respond"
+    }
 }
 
 function Get-ChromePath {
@@ -486,7 +562,7 @@ try {
             Write-Log "=== PHASE: Editor ===" "STEP"
             Start-CodeEditor
             Write-Log "=== PHASE: Port wait ===" "STEP"
-            Wait-ForPorts -Ports @($ServiceDefinitions.Port) -TimeoutSeconds $StartupTimeoutSeconds
+            Wait-ForPorts -Ports @($ServiceDefinitions.Port) -TimeoutSeconds $StartupTimeoutSeconds -Screen $screen
             Write-Log "=== PHASE: Chrome ===" "STEP"
             Start-ChromeForServices -Screen $screen -EnableDevTools:$OpenDevTools
             Write-Log "Start mode completed" "STEP"
@@ -500,7 +576,7 @@ try {
             Write-Log "=== PHASE: Editor ===" "STEP"
             Start-CodeEditor
             Write-Log "=== PHASE: Port wait ===" "STEP"
-            Wait-ForPorts -Ports @($ServiceDefinitions.Port) -TimeoutSeconds $StartupTimeoutSeconds
+            Wait-ForPorts -Ports @($ServiceDefinitions.Port) -TimeoutSeconds $StartupTimeoutSeconds -Screen $screen
             Write-Log "=== PHASE: Chrome (DevTools) ===" "STEP"
             Start-ChromeForServices -Screen $screen -EnableDevTools:$true
             Write-Log "Debug mode completed" "STEP"
