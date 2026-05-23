@@ -24,7 +24,7 @@ The actual product codebase lives in WSL2 at `/home/admin/DraftDream`.
 2. Launches Windows Terminal with tabs: git (plain shell), Claude, api, backoffice, frontoffice, showcase, sandbox
 3. Launches VS Code on the project share
 4. Shows a live status window (bottom-right) monitoring ports until all services are ready
-5. Launches Chrome with: Gmail, bo.fitdesk.io, Jira board, then the three dev servers
+5. Launches Chrome with: Gmail, bo.fitdesk.io, Jira board, Mailcatcher (localhost:1080), then the three dev servers
 
 ## PowerShell Rules
 

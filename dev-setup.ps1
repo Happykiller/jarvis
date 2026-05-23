@@ -33,7 +33,8 @@ $ProjectShare = "\\wsl.localhost\Debian\home\admin\valtys"
 $ExtraUrls = @(
     "https://mail.google.com/",
     "https://bo.fitdesk.io/",
-    "https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34"
+    "https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34",
+    "http://localhost:1080/"
 )
 
 $UpdateAndStart = "git pull && npx npm-check-updates --target minor -u && npm install"
