@@ -151,7 +151,7 @@ function New-WslCommand {
 }
 
 function Start-DockerServices {
-    # Phase 1 — punjabi, alexstrasza, afkah en parallèle
+    # Phase 1 - punjabi, alexstrasza, afkah en parall?le
     Write-Log "Docker Phase 1 (parallel): $($DockerParallelServices.Name -join ', ')" "STEP"
 
     $jobs = [ordered]@{}
@@ -180,7 +180,7 @@ function Start-DockerServices {
         throw "Docker Phase 1 failed for: $($failed -join ', ')"
     }
 
-    # Phase 2 — services séquentiels avec dépendances
+    # Phase 2 - services s?quentiels avec d?pendances
     foreach ($svc in $DockerSequentialServices) {
         if ($svc.WaitHealthy) {
             Write-Log "Waiting for $($svc.WaitHealthy) healthcheck (timeout: $($svc.HealthTimeoutSeconds)s)..." "STEP"
@@ -203,7 +203,7 @@ function Start-DockerServices {
         Write-Log "Docker $($svc.Name): $out"
     }
 
-    # État final
+    # ?tat final
     Write-Log "Docker containers:" "STEP"
     $state = (wsl bash -c "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null" | Out-String).Trim()
     Write-Log $state
@@ -307,7 +307,7 @@ function Wait-ForPorts {
     }
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Jarvis — Démarrage des services"
+    $form.Text = "Jarvis - Demarrage des services"
     $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedToolWindow
     $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
     $form.TopMost = $true
@@ -328,7 +328,7 @@ function Wait-ForPorts {
         $lbl.Width = 330
         $lbl.Height = 22
         $lbl.Location = New-Object System.Drawing.Point(12, $yPos)
-        $lbl.Text = "$svcName  :$port  —  en attente..."
+        $lbl.Text = "$svcName  :$port  -  en attente..."
         $lbl.ForeColor = [System.Drawing.Color]::DimGray
         $form.Controls.Add($lbl)
         $labels[$port] = $lbl
@@ -347,12 +347,12 @@ function Wait-ForPorts {
             $lbl = $labels[$port]
             $svcName = if ($portNames.ContainsKey($port)) { $portNames[$port] } else { "port $port" }
             if (Test-Port -Port $port) {
-                $lbl.Text = "$svcName  :$port  —  pret"
+                $lbl.Text = "$svcName  :$port  -  pret"
                 $lbl.ForeColor = [System.Drawing.Color]::Green
             } else {
                 $elapsed   = [int]((Get-Date) - $startTime).TotalSeconds
                 $remaining = [Math]::Max(0, [int]($deadline - (Get-Date)).TotalSeconds)
-                $lbl.Text  = "$svcName  :$port  —  ${elapsed}s  (reste ${remaining}s)"
+                $lbl.Text  = "$svcName  :$port  -  ${elapsed}s  (reste ${remaining}s)"
                 $lbl.ForeColor = [System.Drawing.Color]::DimGray
                 $pending += $port
             }
@@ -371,7 +371,7 @@ function Wait-ForPorts {
             foreach ($port in $pending) {
                 $lbl = $labels[$port]
                 $svcName = if ($portNames.ContainsKey($port)) { $portNames[$port] } else { "port $port" }
-                $lbl.Text = "$svcName  :$port  —  TIMEOUT"
+                $lbl.Text = "$svcName  :$port  -  TIMEOUT"
                 $lbl.ForeColor = [System.Drawing.Color]::Red
                 Write-Log "Timeout: $svcName (:$port) did not respond" "ERROR"
             }
