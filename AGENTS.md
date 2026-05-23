@@ -21,10 +21,26 @@ The actual product codebase lives in WSL2 at `/home/admin/DraftDream`.
 ## What dev-setup.ps1 Does
 
 1. Detects screen dimensions
-2. Launches Windows Terminal with 7 tabs: LazyGit, Claude, api, backoffice, frontoffice, showcase, sandbox
-3. Launches Antigravity (code editor)
-4. Monitors ports 5173/5174/5175 until ready
-5. Launches Chrome with 3 tabs pointing at dev servers + opens DevTools
+2. Launches Windows Terminal with tabs: git (plain shell), Claude, api, backoffice, frontoffice, showcase, sandbox
+3. Launches VS Code on the project share
+4. Shows a live status window (bottom-right) monitoring ports until all services are ready
+5. Launches Chrome with: Gmail, bo.fitdesk.io, Jira board, then the three dev servers
+
+## PowerShell Rules
+
+**Always use ASCII-only strings in `.ps1` files.**
+PowerShell 5.1 (Windows default) reads scripts as Windows-1252 unless the file has a UTF-16 LE BOM. Non-ASCII characters (em dashes, accented letters, etc.) cause silent parse errors: the script crashes instantly with a flashing CMD window and no error message visible.
+
+- Use `-` instead of an em dash
+- Avoid accented letters in string literals (`pret` not `pret avec accent`, `Demarrage` not `Demarrage avec accent`)
+- After every edit to a `.ps1` file, validate syntax before committing:
+
+```powershell
+$errors = $null
+[System.Management.Automation.Language.Parser]::ParseFile('.\dev-setup.ps1', [ref]$null, [ref]$errors) | Out-Null
+"Errors: $($errors.Count)"
+$errors | ForEach-Object { "Line $($_.Extent.StartLineNumber): $($_.Message)" }
+```
 
 ## DraftDream Platform (the managed project)
 
