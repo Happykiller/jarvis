@@ -28,8 +28,8 @@ $ErrorActionPreference = "Stop"
 
 $JarvisVersion = "1.5.0"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
-$ProjectRoot = "/home/admin/valtys"
-$ProjectShare = "\\wsl.localhost\Debian\home\admin\valtys"
+$ProjectRoot = "/home/admin/galakrond"
+$ProjectShare = "\\wsl.localhost\Debian\home\admin\galakrond"
 $ExtraUrls = @(
     "https://mail.google.com/",
     "https://bo.fitdesk.io/",
@@ -41,12 +41,12 @@ $UpdateAndStart = "git pull && npx npm-check-updates --target minor -u && npm in
 
 $DockerParallelServices = @(
     @{ Name = "punjabi";     Path = "/home/admin/punjabi";            Command = "make up";     Network = $null         },
-    @{ Name = "alexstrasza"; Path = "/home/admin/valtys/alexstrasza"; Command = "make dev-up"; Network = "alexstrasza" },
-    @{ Name = "afkah";       Path = "/home/admin/valtys/afkah";       Command = "make dev-up"; Network = "afkah"       }
+    @{ Name = "alexstrasza"; Path = "/home/admin/galakrond/alexstrasza"; Command = "make dev-up"; Network = "alexstrasza" },
+    @{ Name = "afkah";       Path = "/home/admin/galakrond/afkah";       Command = "make dev-up"; Network = "afkah"       }
 )
 
 $DockerSequentialServices = @(
-    @{ Name = "eudora"; Path = "/home/admin/valtys/eudora"; Command = "docker compose up eudora-dev eudora-worker -d"; WaitHealthy = "alexstrasza"; HealthTimeoutSeconds = 60 }
+    @{ Name = "eudora"; Path = "/home/admin/galakrond/eudora"; Command = "docker compose up eudora-dev eudora-worker -d"; WaitHealthy = "alexstrasza"; HealthTimeoutSeconds = 60 }
 )
 
 $ServiceDefinitions = @(
