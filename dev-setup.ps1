@@ -26,7 +26,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$JarvisVersion = "1.4.0"
+$JarvisVersion = "1.5.0"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
 $ProjectRoot = "/home/admin/valtys"
 $ProjectShare = "\\wsl.localhost\Debian\home\admin\valtys"
@@ -219,8 +219,9 @@ function Start-TerminalTabs {
     }
 
     $tabs = @(
-        @{ Title = "git";      Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "true" },
-        @{ Title = "Claude";   Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "claude" }
+        @{ Title = "codex";    Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "codex" },
+        @{ Title = "Claude";   Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "claude" },
+        @{ Title = "agy";      Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "agy" }
     )
     $tabs += foreach ($service in $ServiceDefinitions) {
         @{ Title = $service.Name; Command = New-WslCommand -WorkingDirectory $service.Path -Command $service.Start }
@@ -273,6 +274,22 @@ function Start-CodeEditor {
         Write-Log "VS Code launched"
     } catch {
         Write-Log "Failed to launch VS Code: $_" "WARN"
+    }
+}
+
+function Start-MongoDBCompass {
+    $compassPath = "C:\Users\fabri\AppData\Local\MongoDBCompass\MongoDBCompass.exe"
+    if (-not (Test-Path $compassPath)) {
+        Write-Log "MongoDB Compass not found at $compassPath" "WARN"
+        return
+    }
+
+    try {
+        Write-Log "Launching MongoDB Compass"
+        Start-Process -FilePath $compassPath
+        Write-Log "MongoDB Compass launched"
+    } catch {
+        Write-Log "Failed to launch MongoDB Compass: $_" "WARN"
     }
 }
 
@@ -562,6 +579,7 @@ try {
             Start-TerminalTabs -Screen $screen
             Write-Log "=== PHASE: Editor ===" "STEP"
             Start-CodeEditor
+            Start-MongoDBCompass
             Write-Log "=== PHASE: Port wait ===" "STEP"
             Wait-ForPorts -Ports @($ServiceDefinitions.Port) -TimeoutSeconds $StartupTimeoutSeconds -Screen $screen
             Write-Log "=== PHASE: Chrome ===" "STEP"
@@ -576,6 +594,7 @@ try {
             Start-TerminalTabs -Screen $screen
             Write-Log "=== PHASE: Editor ===" "STEP"
             Start-CodeEditor
+            Start-MongoDBCompass
             Write-Log "=== PHASE: Port wait ===" "STEP"
             Wait-ForPorts -Ports @($ServiceDefinitions.Port) -TimeoutSeconds $StartupTimeoutSeconds -Screen $screen
             Write-Log "=== PHASE: Chrome (DevTools) ===" "STEP"
