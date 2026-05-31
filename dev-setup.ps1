@@ -26,7 +26,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$JarvisVersion = "1.5.0"
+$JarvisVersion = "1.5.1"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
 $ProjectRoot = "/home/admin/galakrond"
 $ProjectShare = "\\wsl.localhost\Debian\home\admin\galakrond"

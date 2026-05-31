@@ -4,7 +4,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $script:ScriptDir = $PSScriptRoot
-$script:JarvisVersion = "1.5.0"
+$script:JarvisVersion = "1.5.1"
 $script:ChromeProfileDir = "Profile 10"
 
 function Start-DevSetup {
