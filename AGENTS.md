@@ -4,27 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What Is Jarvis?
 
-Jarvis is a **Windows automation launcher** (PowerShell + VBS) that bootstraps the entire **DraftDream** development environment. It runs as a system tray application and automates the complex setup of a multi-service fitness coaching SaaS platform running in WSL2.
+Jarvis is a **Windows automation launcher** (PowerShell + VBS) that bootstraps the entire **Galakrond** development environment. It runs as a system tray application and automates the complex setup of a multi-service fitness coaching SaaS platform running in WSL2.
 
-The actual product codebase lives in WSL2 at `/home/admin/DraftDream`.
+The actual product codebase lives in WSL2 at `/home/admin/galakrond`.
 
 ## Jarvis Files
 
 | File | Purpose |
 |------|---------|
+| `jarvis.config.json` | Single source of truth: version, paths, services, Chrome settings, tabs |
 | `jarvis-tray.ps1` | System tray app with context menu (main entry point) |
 | `jarvis-tray.vbs` | VBS wrapper for hidden (no console) execution |
-| `dev-setup.ps1` | Orchestration script: opens 7 terminal tabs, waits for ports, launches Chrome |
+| `dev-setup.ps1` | Orchestration script: Docker phases, terminal tabs, VS Code, Compass, port wait, Chrome |
 | `dev-setup.bat` | Batch wrapper for PowerShell execution policy bypass |
 | `jarvis.ico` | System tray icon |
 
 ## What dev-setup.ps1 Does
 
-1. Detects screen dimensions
-2. Launches Windows Terminal with tabs: git (plain shell), Claude, api, backoffice, frontoffice, showcase, sandbox
-3. Launches VS Code on the project share
-4. Shows a live status window (bottom-right) monitoring ports until all services are ready
-5. Launches Chrome with: Gmail, bo.fitdesk.io, Jira board, Mailcatcher (localhost:1080), then the three dev servers
+1. Loads `jarvis.config.json` (single source of truth for all config)
+2. Detects screen dimensions
+3. Runs Docker Phase 1 (parallel: punjabi, alexstrasza, afkah, onyxia, sylvanas, tess, xyrella)
+4. Runs Docker Phase 2 (sequential: eudora, waits for alexstrasza healthy)
+5. Launches Windows Terminal with 4 tabs: codex, Claude, agy, sandbox
+6. Launches VS Code on the project share
+7. Launches MongoDB Compass
+8. Shows a live status window (bottom-right) monitoring 4 ports until services are ready
+9. Launches Chrome with Gmail, bo.fitdesk.io, Jira board, Mailcatcher, and the 3 dev servers
+
+## Configuration — jarvis.config.json
+
+**All mutable values belong in `jarvis.config.json`.** Never hardcode version, paths, Chrome profile, service lists, or port numbers directly in `.ps1` files. Both `dev-setup.ps1` and `jarvis-tray.ps1` read this file at startup.
+
+Key fields: `version`, `projectRoot`, `projectShare`, `chrome` (userDataDir, profileDir, debugPort, extraUrls), `dockerParallelServices`, `dockerSequentialServices`, `services` (name/port/url/healthUrl), `terminalTabs`, `paths` (compass, vscode).
 
 ## PowerShell Rules
 
@@ -32,7 +43,8 @@ The actual product codebase lives in WSL2 at `/home/admin/DraftDream`.
 PowerShell 5.1 (Windows default) reads scripts as Windows-1252 unless the file has a UTF-16 LE BOM. Non-ASCII characters (em dashes, accented letters, etc.) cause silent parse errors: the script crashes instantly with a flashing CMD window and no error message visible.
 
 - Use `-` instead of an em dash
-- Avoid accented letters in string literals (`pret` not `pret avec accent`, `Demarrage` not `Demarrage avec accent`)
+- Avoid accented letters in string literals and comments
+- Comments must be in ASCII English (not French with accents)
 - After every edit to a `.ps1` file, validate syntax before committing:
 
 ```powershell
@@ -42,55 +54,94 @@ $errors = $null
 $errors | ForEach-Object { "Line $($_.Extent.StartLineNumber): $($_.Message)" }
 ```
 
-## DraftDream Platform (the managed project)
+## PowerShell Pitfalls (Jarvis-specific)
 
-**Location**: `/home/admin/DraftDream` (WSL2)  
-**Version**: 0.19.0 | **Repo**: github.com/Happykiller/DraftDream
+**Mutex pattern — always use `initiallyOwned=$false` + `WaitOne(0)`:**
+```powershell
+$mutex = New-Object System.Threading.Mutex($false, "Local\MyMutex")
+try { $acquired = $mutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $acquired = $true }
+```
+Using `initiallyOwned=$true` can throw `AbandonedMutexException` on the *next* run after a crash.
+
+**Test-Port must call `EndConnect` — `WaitOne` alone gives false positives:**
+A refused connection signals the wait handle almost instantly (elapsed ~0ms). Without `EndConnect`, the port appears open even when it is closed.
+```powershell
+if (-not $async.AsyncWaitHandle.WaitOne(1000, $false)) { return $false }
+try { $tcp.EndConnect($async); return $true } catch { return $false }
+```
+
+**Start-Job failure detection — check `$LASTEXITCODE`, not just `job.State`:**
+A `wsl`/`make` command that fails leaves `job.State = Completed`. Throw inside the scriptblock to force `State = Failed`:
+```powershell
+$out = (wsl bash -c "cd '$path' && $cmd 2>&1" | Out-String).Trim()
+if ($LASTEXITCODE -ne 0) { throw "exit $LASTEXITCODE : $out" }
+```
+
+**`ErrorActionPreference = Stop` + early phase failure = everything aborts:**
+Wrap each phase (`Start-DockerServices`, etc.) in its own `try/catch`. Terminal, VS Code, and Chrome do not depend on Docker being healthy.
+
+**WinForms modal (`ShowDialog`) — every exit branch must call `$form.Close()`:**
+If the timer's timeout branch does not call `$form.Close()`, `ShowDialog()` blocks forever. The user must manually close the window.
+
+**JSON port numbers and hashtable key types:**
+`ConvertFrom-Json` may return port numbers as `Int64`. PowerShell hashtable key lookups use `GetHashCode()`, so `Int32(3000) != Int64(3000)`. Always cast: `$portNames[[int]$svc.Port] = $svc.Name`.
+
+**WSL/Docker preflight on Windows startup:**
+If Jarvis runs at login, WSL and the Docker daemon may not be ready. Run `wsl -e true` then retry `docker info` (5x, 2s) before launching services.
+
+## Galakrond Platform (the managed project)
+
+**Location**: `/home/admin/galakrond` (WSL2)
+**Windows share**: `\\wsl.localhost\Debian\home\admin\galakrond`
+
+### Service Codenames
+
+| Codename | Role | Dev port |
+|----------|------|----------|
+| onyxia | API (NestJS + GraphQL) | 3000 |
+| sylvanas | Backoffice (React + Vite) | 5174 |
+| tess | Frontoffice (React + Vite) | 5173 |
+| xyrella | Showcase (React + Vite) | 5175 |
+| alexstrasza | Core infrastructure | — |
+| afkah | Auxiliary service | — |
+| eudora | Background workers (depends on alexstrasza) | — |
+| punjabi | Shared infrastructure (`/home/admin/punjabi`) | — |
 
 ### Stack
-- **API**: NestJS 11 + Fastify + Mercurius (GraphQL) + MongoDB 7 — hexagonal architecture with Inversify DI
+- **API (onyxia)**: NestJS 11 + Fastify + Mercurius (GraphQL) + MongoDB 7 — hexagonal architecture with Inversify DI
 - **Frontoffice / Backoffice / Showcase**: React 19 + Vite 8 + TypeScript 5.9.3 + Material UI 7 + Zustand + TanStack Query + i18next (EN/FR)
-- **Infrastructure**: Docker Compose + Nginx reverse proxy (7 domains)
+- **Infrastructure**: Docker Compose + Nginx reverse proxy
 
 ### Development Commands
 
 ```bash
-# Start dev DB
-docker compose -f docker-compose.dev.yml up -d
-
-# API (NestJS) — run from /home/admin/DraftDream/api/
+# API (onyxia) — run from /home/admin/galakrond/onyxia/
 npm run start:dev        # watch mode
 npm run test             # Jest
 npm run test:coverage
-npm run lint             # ESLint
-npm run lint:fix
+npm run lint
 npm run db:fresh         # full reset + seed
 
-# Frontend apps (frontoffice / backoffice / showcase)
+# Frontend apps (sylvanas / tess / xyrella)
 npm run dev              # Vite dev server
 npm run build            # type-check + build
 npm run test             # Vitest
 npm run lint
-
-# Root build targets (from /home/admin/DraftDream/)
-make build               # build all Docker images in parallel
-make api                 # build & save api image
-make frontoffice / backoffice / showcase / mobile
 ```
 
 ### Architecture Principles
 
-**API — Hexagonal (Ports & Adapters)**  
+**API — Hexagonal (Ports & Adapters)**
 Business logic lives in usecases; MongoDB adapters and GraphQL resolvers are driving/driven adapters. Never let framework concerns bleed into usecases.
 
-**Frontend — Layered**  
+**Frontend — Layered**
 GraphQL fetch service → TanStack Query hooks → Zustand stores (session, loader, flash) → Custom domain hooks → Pure rendering components. All async operations must use the `useAsyncTask` hook for global loader sync.
 
-**REGEX source of truth**: `api/src/common/REGEX.ts` — frontend validation regexes must match this file exactly.
+**REGEX source of truth**: `onyxia/src/common/REGEX.ts` — frontend validation regexes must match this file exactly.
 
 **i18n parity**: EN and FR translation keys must stay synchronized in all three frontend apps.
 
-### Cross-Stack Rules (from AGENTS.md)
+### Cross-Stack Rules
 - All files must be committed unless in `.gitignore` — no untracked files
 - English-only code comments; no commented-out code
 - Staircase import formatting: external libs grouped separately from internal modules

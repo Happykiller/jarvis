@@ -1,4 +1,4 @@
-# DraftDream Dev Setup
+# Galakrond Dev Setup
 
 [CmdletBinding()]
 param(
@@ -7,11 +7,11 @@ param(
 
     [int]$StartupTimeoutSeconds = 180,
 
-    [int]$ChromeDebugPort = 9222,
+    [int]$ChromeDebugPort = 0,
 
-    [string]$ChromeUserDataDir = "$env:LOCALAPPDATA\Google\Chrome\User Data",
+    [string]$ChromeUserDataDir = "",
 
-    [string]$ChromeProfileDir = "Profile 10",
+    [string]$ChromeProfileDir = "",
 
     [switch]$ShowConsole,
 
@@ -26,35 +26,28 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$JarvisVersion = "1.5.1"
 $LogFile = Join-Path $PSScriptRoot "dev-setup.log"
-$ProjectRoot = "/home/admin/galakrond"
-$ProjectShare = "\\wsl.localhost\Debian\home\admin\galakrond"
-$ExtraUrls = @(
-    "https://mail.google.com/",
-    "https://bo.fitdesk.io/",
-    "https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34",
-    "http://localhost:1080/"
-)
 
-$UpdateAndStart = "git pull && npx npm-check-updates --target minor -u && npm install"
+$config = Get-Content (Join-Path $PSScriptRoot "jarvis.config.json") -Raw | ConvertFrom-Json
 
-$DockerParallelServices = @(
-    @{ Name = "punjabi";     Path = "/home/admin/punjabi";            Command = "make up";     Network = $null         },
-    @{ Name = "alexstrasza"; Path = "/home/admin/galakrond/alexstrasza"; Command = "make dev-up"; Network = "alexstrasza" },
-    @{ Name = "afkah";       Path = "/home/admin/galakrond/afkah";       Command = "make dev-up"; Network = "afkah"       }
-)
+$JarvisVersion = $config.version
+$ProjectRoot   = $config.projectRoot
+$ProjectShare  = $config.projectShare
 
-$DockerSequentialServices = @(
-    @{ Name = "eudora"; Path = "/home/admin/galakrond/eudora"; Command = "docker compose up eudora-dev eudora-worker -d"; WaitHealthy = "alexstrasza"; HealthTimeoutSeconds = 60 }
-)
+if (-not $PSBoundParameters.ContainsKey('ChromeUserDataDir') -or -not $ChromeUserDataDir) {
+    $ChromeUserDataDir = [System.Environment]::ExpandEnvironmentVariables($config.chrome.userDataDir)
+}
+if (-not $PSBoundParameters.ContainsKey('ChromeProfileDir') -or -not $ChromeProfileDir) {
+    $ChromeProfileDir = $config.chrome.profileDir
+}
+if (-not $PSBoundParameters.ContainsKey('ChromeDebugPort') -or $ChromeDebugPort -eq 0) {
+    $ChromeDebugPort = [int]$config.chrome.debugPort
+}
 
-$ServiceDefinitions = @(
-    @{ Name = "api";        Path = "$ProjectRoot/onyxia";        Start = "$UpdateAndStart && npm run start:dev"; Port = 3000; Url = $null },
-    @{ Name = "backoffice"; Path = "$ProjectRoot/sylvanas"; Start = "$UpdateAndStart && npm run dev";       Port = 5174; Url = "http://localhost:5174/" },
-    @{ Name = "frontoffice";Path = "$ProjectRoot/tess";Start = "$UpdateAndStart && npm run dev";       Port = 5173; Url = "http://localhost:5173/" },
-    @{ Name = "showcase";   Path = "$ProjectRoot/xyrella";   Start = "$UpdateAndStart && npm run dev";       Port = 5175; Url = "http://localhost:5175/" }
-)
+$ExtraUrls                = @($config.chrome.extraUrls)
+$DockerParallelServices   = @($config.dockerParallelServices)
+$DockerSequentialServices = @($config.dockerSequentialServices)
+$ServiceDefinitions       = @($config.services)
 
 function Write-Log {
     param(
@@ -83,20 +76,24 @@ function Write-Log {
 function Initialize-Log {
     Add-Content -Path $LogFile -Value ""
     Add-Content -Path $LogFile -Value ("=" * 60)
-    Write-Log "Jarvis v$JarvisVersion | mode=$Mode | screen=$($env:COMPUTERNAME)" "STEP"
+    Write-Log "Jarvis v$JarvisVersion | mode=$Mode | host=$($env:COMPUTERNAME)" "STEP"
     Write-Log "ChromeUserDataDir : $ChromeUserDataDir"
     Write-Log "ChromeProfileDir  : $(if ($ChromeProfileDir) { $ChromeProfileDir } else { '(default)' })"
     Write-Log "ProjectRoot       : $ProjectRoot"
 }
 
 function Enter-SetupMutex {
-    $createdNew = $false
-    $mutex = New-Object System.Threading.Mutex($true, "Local\JarvisDraftDreamSetup", [ref]$createdNew)
-
-    if (-not $createdNew) {
+    $mutex = New-Object System.Threading.Mutex($false, "Local\JarvisGalakrondSetup")
+    $acquired = $false
+    try {
+        $acquired = $mutex.WaitOne(0)
+    } catch [System.Threading.AbandonedMutexException] {
+        $acquired = $true
+        Write-Log "Previous run abandoned; mutex reclaimed" "WARN"
+    }
+    if (-not $acquired) {
         throw "Another setup instance is already running"
     }
-
     return $mutex
 }
 
@@ -151,8 +148,33 @@ function New-WslCommand {
     return "cd $WorkingDirectory && $Command && exec bash || exec bash"
 }
 
+function Invoke-DockerPreflight {
+    Write-Log "Checking WSL..." "STEP"
+    try {
+        $null = (wsl -e true 2>&1)
+        if ($LASTEXITCODE -ne 0) { throw "WSL exited $LASTEXITCODE" }
+    } catch {
+        throw "WSL is not available: $_"
+    }
+
+    Write-Log "Waiting for Docker daemon..." "STEP"
+    $maxRetries = 5
+    for ($i = 1; $i -le $maxRetries; $i++) {
+        $null = (wsl bash -c "docker info 2>&1")
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "Docker daemon ready"
+            return
+        }
+        Write-Log "Docker not ready (attempt $i/$maxRetries)" "WARN"
+        if ($i -lt $maxRetries) { Start-Sleep -Seconds 2 }
+    }
+    throw "Docker daemon unreachable after $maxRetries attempts"
+}
+
 function Start-DockerServices {
-    # Phase 1 - punjabi, alexstrasza, afkah en parall?le
+    Invoke-DockerPreflight
+
+    # Phase 1 - parallel services
     Write-Log "Docker Phase 1 (parallel): $($DockerParallelServices.Name -join ', ')" "STEP"
 
     $jobs = [ordered]@{}
@@ -162,7 +184,11 @@ function Start-DockerServices {
             if ($network) {
                 wsl bash -c "docker network create '$network' 2>/dev/null; true"
             }
-            wsl bash -c "cd '$path' && $cmd 2>&1"
+            $out = (wsl bash -c "cd '$path' && $cmd 2>&1" | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0) {
+                throw "exit $LASTEXITCODE : $out"
+            }
+            return $out
         }
     }
 
@@ -174,14 +200,14 @@ function Start-DockerServices {
         $out = (Receive-Job -Job $job | Out-String).Trim()
         $state = $job.State
         Remove-Job -Job $job
-        Write-Log "Docker ${name}: $out"
+        Write-Log "Docker ${name}: $state - $out"
         if ($state -eq "Failed") { $failed += $name }
     }
     if ($failed.Count -gt 0) {
         throw "Docker Phase 1 failed for: $($failed -join ', ')"
     }
 
-    # Phase 2 - services s?quentiels avec d?pendances
+    # Phase 2 - sequential services with dependencies
     foreach ($svc in $DockerSequentialServices) {
         if ($svc.WaitHealthy) {
             Write-Log "Waiting for $($svc.WaitHealthy) healthcheck (timeout: $($svc.HealthTimeoutSeconds)s)..." "STEP"
@@ -201,10 +227,13 @@ function Start-DockerServices {
 
         Write-Log "Docker $($svc.Name): starting..." "STEP"
         $out = (wsl bash -c "cd '$($svc.Path)' && $($svc.Command) 2>&1" | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0) {
+            throw "Docker $($svc.Name) failed (exit $LASTEXITCODE): $out"
+        }
         Write-Log "Docker $($svc.Name): $out"
     }
 
-    # ?tat final
+    # Final container state
     Write-Log "Docker containers:" "STEP"
     $state = (wsl bash -c "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null" | Out-String).Trim()
     Write-Log $state
@@ -218,15 +247,9 @@ function Start-TerminalTabs {
         return
     }
 
-    $tabs = @(
-        @{ Title = "codex";    Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "codex" },
-        @{ Title = "Claude";   Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "claude" },
-        @{ Title = "agy";      Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "agy" }
-    )
-    $tabs += foreach ($service in $ServiceDefinitions) {
-        @{ Title = $service.Name; Command = New-WslCommand -WorkingDirectory $service.Path -Command $service.Start }
-    }
-    $tabs += @{ Title = "sandbox"; Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command "true" }
+    $tabs = @($config.terminalTabs | ForEach-Object {
+        @{ Title = $_.title; Command = New-WslCommand -WorkingDirectory $ProjectRoot -Command $_.command }
+    })
 
     Write-Log "Terminal tabs=$($tabs.Count)" "STEP"
     foreach ($tab in $tabs) {
@@ -278,7 +301,7 @@ function Start-CodeEditor {
 }
 
 function Start-MongoDBCompass {
-    $compassPath = "C:\Users\fabri\AppData\Local\MongoDBCompass\MongoDBCompass.exe"
+    $compassPath = [System.Environment]::ExpandEnvironmentVariables($config.paths.compass)
     if (-not (Test-Path $compassPath)) {
         Write-Log "MongoDB Compass not found at $compassPath" "WARN"
         return
@@ -300,7 +323,15 @@ function Test-Port {
     try {
         $tcp = New-Object System.Net.Sockets.TcpClient
         $async = $tcp.BeginConnect("127.0.0.1", $Port, $null, $null)
-        return $async.AsyncWaitHandle.WaitOne(1000, $false)
+        if (-not $async.AsyncWaitHandle.WaitOne(1000, $false)) {
+            return $false
+        }
+        try {
+            $tcp.EndConnect($async)
+            return $true
+        } catch {
+            return $false
+        }
     } catch {
         return $false
     } finally {
@@ -321,11 +352,11 @@ function Wait-ForPorts {
 
     $portNames = @{}
     foreach ($svc in $ServiceDefinitions) {
-        $portNames[$svc.Port] = $svc.Name
+        $portNames[[int]$svc.Port] = $svc.Name
     }
 
     $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Jarvis - Demarrage des services"
+    $form.Text = "Jarvis - Starting services"
     $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedToolWindow
     $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
     $form.TopMost = $true
@@ -346,7 +377,7 @@ function Wait-ForPorts {
         $lbl.Width = 330
         $lbl.Height = 22
         $lbl.Location = New-Object System.Drawing.Point(12, $yPos)
-        $lbl.Text = "$svcName  :$port  -  en attente..."
+        $lbl.Text = "$svcName  :$port  -  waiting..."
         $lbl.ForeColor = [System.Drawing.Color]::DimGray
         $form.Controls.Add($lbl)
         $labels[$port] = $lbl
@@ -365,12 +396,12 @@ function Wait-ForPorts {
             $lbl = $labels[$port]
             $svcName = if ($portNames.ContainsKey($port)) { $portNames[$port] } else { "port $port" }
             if (Test-Port -Port $port) {
-                $lbl.Text = "$svcName  :$port  -  pret"
+                $lbl.Text = "$svcName  :$port  -  ready"
                 $lbl.ForeColor = [System.Drawing.Color]::Green
             } else {
                 $elapsed   = [int]((Get-Date) - $startTime).TotalSeconds
                 $remaining = [Math]::Max(0, [int]($deadline - (Get-Date)).TotalSeconds)
-                $lbl.Text  = "$svcName  :$port  -  ${elapsed}s  (reste ${remaining}s)"
+                $lbl.Text  = "$svcName  :$port  -  ${elapsed}s  (${remaining}s left)"
                 $lbl.ForeColor = [System.Drawing.Color]::DimGray
                 $pending += $port
             }
@@ -391,8 +422,10 @@ function Wait-ForPorts {
                 $svcName = if ($portNames.ContainsKey($port)) { $portNames[$port] } else { "port $port" }
                 $lbl.Text = "$svcName  :$port  -  TIMEOUT"
                 $lbl.ForeColor = [System.Drawing.Color]::Red
-                Write-Log "Timeout: $svcName (:$port) did not respond" "ERROR"
+                Write-Log "Timeout: $svcName (:$port) did not respond" "WARN"
             }
+            Start-Sleep -Milliseconds 1500
+            $form.Close()
         }
     }.GetNewClosure()
 
@@ -407,7 +440,7 @@ function Wait-ForPorts {
         $names = $stillPending | ForEach-Object {
             if ($portNames.ContainsKey($_)) { "$($portNames[$_]) (:$_)" } else { "port $_" }
         }
-        throw "Startup timeout: $($names -join ', ') did not respond"
+        Write-Log "Services not ready at timeout (proceeding): $($names -join ', ')" "WARN"
     }
 }
 
@@ -574,7 +607,11 @@ try {
     switch ($Mode) {
         "start" {
             Write-Log "=== PHASE: Docker ===" "STEP"
-            Start-DockerServices
+            try {
+                Start-DockerServices
+            } catch {
+                Write-Log "Docker phase failed (continuing): $_" "WARN"
+            }
             Write-Log "=== PHASE: Terminal ===" "STEP"
             Start-TerminalTabs -Screen $screen
             Write-Log "=== PHASE: Editor ===" "STEP"
@@ -589,7 +626,11 @@ try {
 
         "debug" {
             Write-Log "=== PHASE: Docker ===" "STEP"
-            Start-DockerServices
+            try {
+                Start-DockerServices
+            } catch {
+                Write-Log "Docker phase failed (continuing): $_" "WARN"
+            }
             Write-Log "=== PHASE: Terminal ===" "STEP"
             Start-TerminalTabs -Screen $screen
             Write-Log "=== PHASE: Editor ===" "STEP"
@@ -601,19 +642,13 @@ try {
             Start-ChromeForServices -Screen $screen -EnableDevTools:$true
             Write-Log "Debug mode completed" "STEP"
         }
-
-        "full" {
-            Write-Log "=== PHASE: Bootstrap ===" "STEP"
-            Start-TerminalTabs -TerminalMode "bootstrap" -Screen $screen
-            Write-Log "Bootstrap tabs launched. Run start or debug after deps are installed." "STEP"
-        }
     }
 } catch {
     Write-Log "Setup failed: $_" "ERROR"
     exit 1
 } finally {
     if ($null -ne $setupMutex) {
-        $setupMutex.ReleaseMutex() | Out-Null
+        try { $setupMutex.ReleaseMutex() | Out-Null } catch {}
         $setupMutex.Dispose()
         Write-Log "Setup mutex released"
     }

@@ -4,8 +4,9 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $script:ScriptDir = $PSScriptRoot
-$script:JarvisVersion = "1.5.1"
-$script:ChromeProfileDir = "Profile 10"
+$script:Config = Get-Content (Join-Path $script:ScriptDir "jarvis.config.json") -Raw | ConvertFrom-Json
+$script:JarvisVersion = $script:Config.version
+$script:ChromeProfileDir = $script:Config.chrome.profileDir
 
 function Start-DevSetup {
     param(
@@ -18,8 +19,7 @@ function Start-DevSetup {
     $arguments = @(
         "-ExecutionPolicy", "Bypass",
         "-File", "`"$($script:ScriptDir)\dev-setup.ps1`"",
-        "-Mode", $Mode,
-        "-ChromeProfileDir", "`"$($script:ChromeProfileDir)`""
+        "-Mode", $Mode
     )
 
     if ($Mode -eq "debug") {
@@ -59,6 +59,29 @@ $itemStart.Add_Click({
     Start-DevSetup -Mode "start"
 })
 $menu.Items.Add($itemStart) | Out-Null
+
+$itemDebug = New-Object System.Windows.Forms.ToolStripMenuItem("Debug Start")
+$itemDebug.Add_Click({
+    Start-DevSetup -Mode "debug"
+})
+$menu.Items.Add($itemDebug) | Out-Null
+
+$itemStartConsole = New-Object System.Windows.Forms.ToolStripMenuItem("Start (console)")
+$itemStartConsole.Add_Click({
+    Start-DevSetup -Mode "start" -ShowConsole
+})
+$menu.Items.Add($itemStartConsole) | Out-Null
+
+$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
+
+$itemOpenLog = New-Object System.Windows.Forms.ToolStripMenuItem("Open Log")
+$itemOpenLog.Add_Click({
+    $logPath = Join-Path $script:ScriptDir "dev-setup.log"
+    if (Test-Path $logPath) {
+        Start-Process "notepad.exe" -ArgumentList $logPath
+    }
+})
+$menu.Items.Add($itemOpenLog) | Out-Null
 
 $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
 

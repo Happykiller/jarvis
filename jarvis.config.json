@@ -1,0 +1,50 @@
+{
+  "version": "1.6.0",
+  "projectRoot": "/home/admin/galakrond",
+  "projectShare": "\\\\wsl.localhost\\Debian\\home\\admin\\galakrond",
+  "chrome": {
+    "userDataDir": "%LOCALAPPDATA%\\Google\\Chrome\\User Data",
+    "profileDir": "Profile 10",
+    "debugPort": 9222,
+    "extraUrls": [
+      "https://mail.google.com/",
+      "https://bo.fitdesk.io/",
+      "https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34",
+      "http://localhost:1080/"
+    ]
+  },
+  "dockerParallelServices": [
+    { "name": "punjabi",     "path": "/home/admin/punjabi",               "command": "make up",     "network": null         },
+    { "name": "alexstrasza", "path": "/home/admin/galakrond/alexstrasza", "command": "make dev-up", "network": "alexstrasza" },
+    { "name": "afkah",       "path": "/home/admin/galakrond/afkah",       "command": "make dev-up", "network": "afkah"       },
+    { "name": "onyxia",      "path": "/home/admin/galakrond/onyxia",      "command": "make dev-up", "network": null         },
+    { "name": "sylvanas",    "path": "/home/admin/galakrond/sylvanas",    "command": "make dev-up", "network": null         },
+    { "name": "tess",        "path": "/home/admin/galakrond/tess",        "command": "make dev-up", "network": null         },
+    { "name": "xyrella",     "path": "/home/admin/galakrond/xyrella",     "command": "make dev-up", "network": null         }
+  ],
+  "dockerSequentialServices": [
+    {
+      "name": "eudora",
+      "path": "/home/admin/galakrond/eudora",
+      "command": "docker compose up eudora-dev eudora-worker -d",
+      "waitHealthy": "alexstrasza",
+      "healthTimeoutSeconds": 60
+    }
+  ],
+  "services": [
+    { "name": "api",        "port": 3000, "url": null,                    "healthUrl": "http://localhost:3000/graphql" },
+    { "name": "backoffice", "port": 5174, "url": "http://localhost:5174/","healthUrl": "http://localhost:5174/"         },
+    { "name": "frontoffice","port": 5173, "url": "http://localhost:5173/","healthUrl": "http://localhost:5173/"         },
+    { "name": "showcase",   "port": 5175, "url": "http://localhost:5175/","healthUrl": "http://localhost:5175/"         }
+  ],
+  "terminalTabs": [
+    { "title": "codex",   "command": "codex" },
+    { "title": "Claude",  "command": "claude" },
+    { "title": "agy",     "command": "agy" },
+    { "title": "sandbox", "command": "true" }
+  ],
+  "paths": {
+    "compass": "%LOCALAPPDATA%\\MongoDBCompass\\MongoDBCompass.exe",
+    "vscode": "code"
+  }
+}
