@@ -89,6 +89,18 @@ If the timer's timeout branch does not call `$form.Close()`, `ShowDialog()` bloc
 **WSL/Docker preflight on Windows startup:**
 If Jarvis runs at login, WSL and the Docker daemon may not be ready. Run `wsl -e true` then retry `docker info` (5x, 2s) before launching services.
 
+**Docker compose `entrypoint` overrides the Dockerfile CMD:**
+Setting `entrypoint:` in docker-compose.yml without `command:` **nullifies the Dockerfile CMD**. The entrypoint runs, reaches `exec "$@"` with empty args, and exits 0 silently. Always pair a custom entrypoint with an explicit `command:` in the compose file.
+```yaml
+entrypoint: ["sh", "/app/entrypoint.dev.sh"]
+command: ["npm", "run", "dev"]   # required — without this, CMD from Dockerfile is erased
+```
+Symptom: container exits with code 0 immediately after startup tasks (npm install, etc.) with no error.
+
+## Log Rotation
+
+Logs are written to `logs/dev-setup-YYYY-MM-DD_HH-mm-ss.log` (one file per run). The last 30 files are kept; older ones are deleted automatically. The tray "Open Log" menu item opens the most recent file in the `logs/` directory.
+
 ## Galakrond Platform (the managed project)
 
 **Location**: `/home/admin/galakrond` (WSL2)

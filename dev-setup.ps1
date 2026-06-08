@@ -26,7 +26,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$LogFile = Join-Path $PSScriptRoot "dev-setup.log"
+$LogDir  = Join-Path $PSScriptRoot "logs"
+$LogFile = Join-Path $LogDir ("dev-setup-" + (Get-Date -Format "yyyy-MM-dd_HH-mm-ss") + ".log")
 
 $config = Get-Content (Join-Path $PSScriptRoot "jarvis.config.json") -Raw | ConvertFrom-Json
 
@@ -74,7 +75,11 @@ function Write-Log {
 }
 
 function Initialize-Log {
-    Add-Content -Path $LogFile -Value ""
+    if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir | Out-Null }
+    Get-ChildItem $LogDir -Filter "dev-setup-*.log" |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -Skip 30 |
+        Remove-Item -Force
     Add-Content -Path $LogFile -Value ("=" * 60)
     Write-Log "Jarvis v$JarvisVersion | mode=$Mode | host=$($env:COMPUTERNAME)" "STEP"
     Write-Log "ChromeUserDataDir : $ChromeUserDataDir"

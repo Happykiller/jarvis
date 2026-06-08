@@ -76,9 +76,12 @@ $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
 
 $itemOpenLog = New-Object System.Windows.Forms.ToolStripMenuItem("Open Log")
 $itemOpenLog.Add_Click({
-    $logPath = Join-Path $script:ScriptDir "dev-setup.log"
-    if (Test-Path $logPath) {
-        Start-Process "notepad.exe" -ArgumentList $logPath
+    $logDir = Join-Path $script:ScriptDir "logs"
+    $latest = Get-ChildItem $logDir -Filter "dev-setup-*.log" -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+    if ($latest) {
+        Start-Process "notepad.exe" -ArgumentList $latest.FullName
     }
 })
 $menu.Items.Add($itemOpenLog) | Out-Null
