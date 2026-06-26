@@ -15,6 +15,8 @@ param(
 
     [switch]$ShowConsole,
 
+    [switch]$SkipGitPull,
+
     [switch]$SkipTerminal,
 
     [switch]$SkipCode,
@@ -45,10 +47,9 @@ if (-not $PSBoundParameters.ContainsKey('ChromeDebugPort') -or $ChromeDebugPort 
     $ChromeDebugPort = [int]$config.chrome.debugPort
 }
 
-$ExtraUrls                = @($config.chrome.extraUrls)
-$DockerParallelServices   = @($config.dockerParallelServices)
-$DockerSequentialServices = @($config.dockerSequentialServices)
-$ServiceDefinitions       = @($config.services)
+$ExtraUrls          = @($config.chrome.extraUrls)
+$DockerPhases       = @($config.dockerPhases)
+$ServiceDefinitions = @($config.services)
 
 function Write-Log {
     param(
@@ -153,6 +154,51 @@ function New-WslCommand {
     return "cd $WorkingDirectory && $Command && exec bash || exec bash"
 }
 
+function Update-GitRepos {
+    if ($SkipGitPull) {
+        Write-Log "Skipping git pull"
+        return
+    }
+    if (-not $config.gitPull -or -not $config.gitPull.enabled) {
+        Write-Log "git pull disabled in config"
+        return
+    }
+
+    $repos = @($config.gitPull.repos)
+    if ($repos.Count -eq 0) {
+        Write-Log "No repos configured for git pull" "WARN"
+        return
+    }
+
+    Write-Log "git pull ($($repos.Count) repos, parallel): $($repos -join ', ')" "STEP"
+
+    $jobs = [ordered]@{}
+    foreach ($repo in $repos) {
+        $jobs[$repo] = Start-Job -ArgumentList $repo -ScriptBlock {
+            param($path)
+            $out = (wsl bash -c "cd '$path' && git pull --ff-only 2>&1" | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0) {
+                throw "exit $LASTEXITCODE : $out"
+            }
+            return $out
+        }
+    }
+
+    $jobs.Values | Wait-Job | Out-Null
+
+    foreach ($repo in $jobs.Keys) {
+        $job = $jobs[$repo]
+        $out = (Receive-Job -Job $job | Out-String).Trim()
+        $state = $job.State
+        Remove-Job -Job $job
+        if ($state -eq "Failed") {
+            Write-Log "git pull ${repo}: FAILED - $out" "WARN"
+        } else {
+            Write-Log "git pull ${repo}: $out"
+        }
+    }
+}
+
 function Invoke-DockerPreflight {
     Write-Log "Checking WSL..." "STEP"
     try {
@@ -176,15 +222,37 @@ function Invoke-DockerPreflight {
     throw "Docker daemon unreachable after $maxRetries attempts"
 }
 
-function Start-DockerServices {
-    Invoke-DockerPreflight
+function Wait-ForContainerHealthy {
+    param(
+        [string[]]$Names,
+        [int]$TimeoutSeconds
+    )
 
-    # Phase 1 - parallel services
-    Write-Log "Docker Phase 1 (parallel): $($DockerParallelServices.Name -join ', ')" "STEP"
+    if ($TimeoutSeconds -le 0) { $TimeoutSeconds = 60 }
+
+    foreach ($name in $Names) {
+        Write-Log "Waiting for $name healthcheck (timeout: ${TimeoutSeconds}s)..." "STEP"
+        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+        $healthy = $false
+        while ((Get-Date) -lt $deadline) {
+            $health = (wsl bash -c "docker inspect $name --format '{{.State.Health.Status}}' 2>/dev/null").Trim()
+            Write-Log "$name health: $health" "DEBUG"
+            if ($health -eq "healthy") { $healthy = $true; break }
+            Start-Sleep -Seconds 2
+        }
+        if (-not $healthy) {
+            throw "Timeout: $name did not become healthy within ${TimeoutSeconds}s"
+        }
+        Write-Log "${name}: healthy"
+    }
+}
+
+function Start-DockerPhaseParallel {
+    param($Phase)
 
     $jobs = [ordered]@{}
-    foreach ($svc in $DockerParallelServices) {
-        $jobs[$svc.Name] = Start-Job -ArgumentList $svc.Path, $svc.Network, $svc.Command -ScriptBlock {
+    foreach ($svc in $Phase.services) {
+        $jobs[$svc.name] = Start-Job -ArgumentList $svc.path, $svc.network, $svc.command -ScriptBlock {
             param($path, $network, $cmd)
             if ($network) {
                 wsl bash -c "docker network create '$network' 2>/dev/null; true"
@@ -209,33 +277,44 @@ function Start-DockerServices {
         if ($state -eq "Failed") { $failed += $name }
     }
     if ($failed.Count -gt 0) {
-        throw "Docker Phase 1 failed for: $($failed -join ', ')"
+        throw "Docker phase '$($Phase.name)' failed for: $($failed -join ', ')"
     }
+}
 
-    # Phase 2 - sequential services with dependencies
-    foreach ($svc in $DockerSequentialServices) {
-        if ($svc.WaitHealthy) {
-            Write-Log "Waiting for $($svc.WaitHealthy) healthcheck (timeout: $($svc.HealthTimeoutSeconds)s)..." "STEP"
-            $deadline = (Get-Date).AddSeconds($svc.HealthTimeoutSeconds)
-            $healthy = $false
-            while ((Get-Date) -lt $deadline) {
-                $health = (wsl bash -c "docker inspect $($svc.WaitHealthy) --format '{{.State.Health.Status}}' 2>/dev/null").Trim()
-                Write-Log "$($svc.WaitHealthy) health: $health" "DEBUG"
-                if ($health -eq "healthy") { $healthy = $true; break }
-                Start-Sleep -Seconds 2
-            }
-            if (-not $healthy) {
-                throw "Timeout: $($svc.WaitHealthy) did not become healthy within $($svc.HealthTimeoutSeconds)s"
-            }
-            Write-Log "$($svc.WaitHealthy): healthy"
+function Start-DockerPhaseSequential {
+    param($Phase)
+
+    foreach ($svc in $Phase.services) {
+        if ($svc.network) {
+            wsl bash -c "docker network create '$($svc.network)' 2>/dev/null; true"
         }
-
-        Write-Log "Docker $($svc.Name): starting..." "STEP"
-        $out = (wsl bash -c "cd '$($svc.Path)' && $($svc.Command) 2>&1" | Out-String).Trim()
+        Write-Log "Docker $($svc.name): starting..." "STEP"
+        $out = (wsl bash -c "cd '$($svc.path)' && $($svc.command) 2>&1" | Out-String).Trim()
         if ($LASTEXITCODE -ne 0) {
-            throw "Docker $($svc.Name) failed (exit $LASTEXITCODE): $out"
+            throw "Docker $($svc.name) failed (exit $LASTEXITCODE): $out"
         }
-        Write-Log "Docker $($svc.Name): $out"
+        Write-Log "Docker $($svc.name): $out"
+    }
+}
+
+function Start-DockerServices {
+    Invoke-DockerPreflight
+
+    foreach ($phase in $DockerPhases) {
+        if ($phase.waitHealthy) {
+            Wait-ForContainerHealthy -Names @($phase.waitHealthy) -TimeoutSeconds ([int]$phase.healthTimeoutSeconds)
+        }
+
+        $isParallel = [bool]$phase.parallel
+        $mode = if ($isParallel) { "parallel" } else { "sequential" }
+        $names = @($phase.services | ForEach-Object { $_.name }) -join ', '
+        Write-Log "Docker phase '$($phase.name)' ($mode): $names" "STEP"
+
+        if ($isParallel) {
+            Start-DockerPhaseParallel -Phase $phase
+        } else {
+            Start-DockerPhaseSequential -Phase $phase
+        }
     }
 
     # Final container state
@@ -346,6 +425,33 @@ function Test-Port {
     }
 }
 
+function Test-HealthUrl {
+    param([string]$Url)
+
+    # Ready means the server produced an HTTP response - even a 4xx/5xx status
+    # proves the process is up and serving (e.g. GET /graphql returns 400 but
+    # confirms NestJS is listening). Only a refused/timed-out connection is "not ready".
+    try {
+        $null = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 3 -Method Get
+        return $true
+    } catch {
+        if ($null -ne $_.Exception.Response) { return $true }
+        return $false
+    }
+}
+
+function Test-ServiceReady {
+    param(
+        [int]$Port,
+        [hashtable]$HealthUrls
+    )
+
+    if ($HealthUrls.ContainsKey($Port)) {
+        return (Test-HealthUrl -Url $HealthUrls[$Port])
+    }
+    return (Test-Port -Port $Port)
+}
+
 function Wait-ForPorts {
     param(
         [int[]]$Ports,
@@ -353,11 +459,15 @@ function Wait-ForPorts {
         [hashtable]$Screen
     )
 
-    Write-Log "Waiting for ports: $($Ports -join ', ') with timeout ${TimeoutSeconds}s" "STEP"
+    Write-Log "Waiting for services on ports: $($Ports -join ', ') with timeout ${TimeoutSeconds}s" "STEP"
 
     $portNames = @{}
+    $healthUrls = @{}
     foreach ($svc in $ServiceDefinitions) {
         $portNames[[int]$svc.Port] = $svc.Name
+        if ($svc.healthUrl) {
+            $healthUrls[[int]$svc.Port] = [string]$svc.healthUrl
+        }
     }
 
     $form = New-Object System.Windows.Forms.Form
@@ -400,7 +510,7 @@ function Wait-ForPorts {
         foreach ($port in $Ports) {
             $lbl = $labels[$port]
             $svcName = if ($portNames.ContainsKey($port)) { $portNames[$port] } else { "port $port" }
-            if (Test-Port -Port $port) {
+            if (Test-ServiceReady -Port $port -HealthUrls $healthUrls) {
                 $lbl.Text = "$svcName  :$port  -  ready"
                 $lbl.ForeColor = [System.Drawing.Color]::Green
             } else {
@@ -440,7 +550,7 @@ function Wait-ForPorts {
     $timer.Dispose()
     $form.Dispose()
 
-    $stillPending = @($Ports | Where-Object { -not (Test-Port -Port $_) })
+    $stillPending = @($Ports | Where-Object { -not (Test-ServiceReady -Port $_ -HealthUrls $healthUrls) })
     if ($stillPending.Count -gt 0) {
         $names = $stillPending | ForEach-Object {
             if ($portNames.ContainsKey($_)) { "$($portNames[$_]) (:$_)" } else { "port $_" }
@@ -611,6 +721,12 @@ try {
 
     switch ($Mode) {
         "start" {
+            Write-Log "=== PHASE: Git pull ===" "STEP"
+            try {
+                Update-GitRepos
+            } catch {
+                Write-Log "Git pull phase failed (continuing): $_" "WARN"
+            }
             Write-Log "=== PHASE: Docker ===" "STEP"
             try {
                 Start-DockerServices
@@ -630,6 +746,12 @@ try {
         }
 
         "debug" {
+            Write-Log "=== PHASE: Git pull ===" "STEP"
+            try {
+                Update-GitRepos
+            } catch {
+                Write-Log "Git pull phase failed (continuing): $_" "WARN"
+            }
             Write-Log "=== PHASE: Docker ===" "STEP"
             try {
                 Start-DockerServices
