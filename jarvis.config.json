@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "projectRoot": "/home/admin/galakrond",
   "projectShare": "\\\\wsl.localhost\\Debian\\home\\admin\\galakrond",
   "gitPull": {
@@ -12,8 +12,7 @@
       "/home/admin/galakrond/onyxia",
       "/home/admin/galakrond/xyrella",
       "/home/admin/galakrond/sylvanas",
-      "/home/admin/galakrond/tess",
-      "/home/admin/punjabi"
+      "/home/admin/galakrond/tess"
     ]
   },
   "chrome": {

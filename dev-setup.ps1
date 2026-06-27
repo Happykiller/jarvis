@@ -177,10 +177,7 @@ function Update-GitRepos {
         $jobs[$repo] = Start-Job -ArgumentList $repo -ScriptBlock {
             param($path)
             $out = (wsl bash -c "cd '$path' && git pull --ff-only 2>&1" | Out-String).Trim()
-            if ($LASTEXITCODE -ne 0) {
-                throw "exit $LASTEXITCODE : $out"
-            }
-            return $out
+            return [pscustomobject]@{ Code = $LASTEXITCODE; Output = $out }
         }
     }
 
@@ -188,14 +185,29 @@ function Update-GitRepos {
 
     foreach ($repo in $jobs.Keys) {
         $job = $jobs[$repo]
-        $out = (Receive-Job -Job $job | Out-String).Trim()
-        $state = $job.State
+        $result = Receive-Job -Job $job
         Remove-Job -Job $job
-        if ($state -eq "Failed") {
-            Write-Log "git pull ${repo}: FAILED - $out" "WARN"
-        } else {
-            Write-Log "git pull ${repo}: $out"
+        $code = if ($null -ne $result) { [int]$result.Code } else { 1 }
+        $out = if ($null -ne $result) { [string]$result.Output } else { "no output" }
+
+        if ($code -eq 0) {
+            $short = if ($out -match "Already up to date") { "already up to date" } else { "updated" }
+            Write-Log "git pull ${repo}: $short"
+            continue
         }
+
+        # Non-fatal: classify the failure so the log says what to do, not just FAILED.
+        $hint = switch -Regex ($out) {
+            "untracked working tree files would be overwritten" { "local untracked files block fast-forward (move/remove them, or remove from gitPull)"; break }
+            "local changes.*would be overwritten|Your local changes"  { "local uncommitted changes block fast-forward (commit or stash)"; break }
+            "Not possible to fast-forward|diverged|non-fast-forward"   { "branch diverged from upstream (manual merge needed)"; break }
+            "no tracking information|no upstream"                      { "no upstream configured for this branch"; break }
+            "Could not resolve host|unable to access|Connection timed out|Could not read from remote" { "network error reaching remote"; break }
+            "Not a git repository|No such file or directory"           { "path is not a git repository"; break }
+            default { "skipped (see details below)" }
+        }
+        Write-Log "git pull ${repo}: $hint" "WARN"
+        if ($out) { Write-Log "  -> $($out -replace '\r?\n', ' | ')" }
     }
 }
 
