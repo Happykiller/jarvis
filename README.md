@@ -1,153 +1,127 @@
 # Jarvis
 
-Jarvis is a Windows tray launcher for bootstrapping the local Galakrond development environment running in WSL2.
+Jarvis is a **Windows desktop app** that bootstraps the local **Galakrond**
+development environment running in WSL2. Since **v2.0** it is a native
+[Tauri](https://tauri.app) application (Rust backend + React frontend) that lives
+in the system tray, replacing the previous PowerShell tray + WinForms solution.
 
-It starts Docker services, opens terminal tabs, waits for local ports, launches VS Code and MongoDB Compass, then opens a dedicated Chrome session.
+From one window it boots the whole stack: WSL/Docker preflight, parallel
+`git pull`, ordered Docker phases with health gating, then launches Windows
+Terminal, VS Code, MongoDB Compass and Chrome - while a live dashboard tracks
+each service's health.
 
-## What This Repository Contains
+![Jarvis](public/jarvis-icon.png)
 
-- `jarvis.config.json`: single source of truth for all configuration (version, paths, services, tabs)
-- `jarvis-tray.ps1`: tray application with context menu
-- `jarvis-tray.vbs`: hidden launcher for the tray app
-- `dev-setup.ps1`: main setup script (`start` and `debug` modes)
-- `dev-setup.bat`: batch wrapper that starts `dev-setup.ps1` in `start` mode
-- `jarvis.ico`: tray icon
-- `dev-setup.log`: execution log written by the setup script
+## Features
 
-## Managed Project
+- **Live dashboard** - every service shown as a card (online/offline, port,
+  latency); click to open its URL, or restart it in place.
+- **One-click boot** - "Demarrer l'environnement" runs the full sequence with a
+  slide-in **progress panel** streaming command output line by line.
+- **Per-service restart** - re-run a single Docker service from its card.
+- **Text-to-speech** greeting on launch (Web Speech API).
+- **System tray** - hide-to-tray on close, single-instance, **autostart at
+  login** toggle (replaces the old `.vbs`).
+- Branded cyan-orb icon across window, taskbar, tray and installer.
 
-The launcher manages the Galakrond codebase located in WSL2:
+## Architecture
 
-- WSL path: `/home/admin/galakrond`
-- Windows share: `\\wsl.localhost\Debian\home\admin\galakrond`
-- Services: alexstrasza (api), afkah, onyxia, sylvanas, tess, xyrella, eudora (via punjabi infrastructure)
+```
+src/                 React 19 + TypeScript + Vite + Tailwind 4 frontend
+  App.tsx              dashboard
+  components/          ServiceCard, ProgressPanel
+  hooks/               useOrchestration (listens to Tauri events)
+  lib/                 api (invoke wrappers), tts
+src-tauri/src/       Rust backend
+  config.rs            loads/models jarvis.config.json
+  health.rs            async TCP + HTTP service probes
+  orchestrator.rs      boot sequence + per-service restart + log streaming
+  launchers.rs         Terminal / VS Code / Compass / Chrome
+  lib.rs               tray, single-instance, autostart, commands
+jarvis.config.json   single source of truth (shared with legacy scripts)
+```
+
+The backend exposes four commands to the UI - `load_config`, `check_services`,
+`start_environment`, `restart_service` - and streams progress as `orchestration`
+events.
 
 ## Prerequisites
 
-The machine is expected to have:
+**To run the built app:** just install it (WebView2 ships with Windows 11).
 
-- Windows Terminal
-- PowerShell 5.1+
-- Google Chrome
-- VS Code available through the `code` command
-- MongoDB Compass at `%LOCALAPPDATA%\MongoDBCompass\MongoDBCompass.exe`
-- WSL2 with a `Debian` distribution
-- The Galakrond project checked out at `/home/admin/galakrond`
-- Docker Desktop with WSL2 backend
+**To develop / build from source:**
 
-## Configuration
+- [Node.js](https://nodejs.org) 18+ and npm
+- [Rust](https://rustup.rs) (MSVC toolchain) + **Microsoft C++ Build Tools**
+  (`winget install Microsoft.VisualStudio.2022.BuildTools` with the
+  "Desktop development with C++" workload)
+- WSL2 with a `Debian` distribution, Docker Desktop (WSL2 backend), and the
+  Galakrond repo at `/home/admin/galakrond`
+- For the launchers: Windows Terminal, `code` on PATH, Google Chrome, MongoDB
+  Compass
 
-All mutable values live in `jarvis.config.json`. Edit that file to change:
+## Development
 
-- `version`: launcher version (displayed in tray and log)
-- `chrome.profileDir`: which Chrome profile to use (default: `Profile 10`)
-- `chrome.extraUrls`: URLs opened on every start (Gmail, Jira, etc.)
-- `dockerParallelServices` / `dockerSequentialServices`: Docker startup phases
-- `services`: ports and health URLs that Jarvis waits for
-- `terminalTabs`: WSL terminal tabs opened on start
-- `paths.compass`: path to MongoDB Compass executable
-
-## Launcher Version
-
-Current version is read from `jarvis.config.json`. It is displayed in the tray tooltip and written to every log entry.
-
-## Tray Menu
-
-- **Jarvis vX.Y.Z** (disabled label)
-- **Start**: launches the full workspace (Docker, terminal, VS Code, Compass, port wait, Chrome)
-- **Debug Start**: same as Start but enables Chrome remote debugging and opens DevTools
-- **Start (console)**: same as Start but keeps the PowerShell window visible for live log output
-- **Open Log**: opens `dev-setup.log` in Notepad
-- **Add To Windows Startup** / **Remove From Windows Startup**: toggles tray autostart
-- **Quit Jarvis**: closes the tray application
-
-Double-clicking the tray icon triggers **Start**.
-
-## Setup Modes
-
-`dev-setup.ps1` supports two modes:
-
-- `start`: Docker preflight + parallel/sequential services + terminal tabs + VS Code + Compass + port wait + Chrome
-- `debug`: same as `start`, but enables Chrome remote debugging and opens DevTools
-
-## Docker Phases
-
-**Phase 1 (parallel)**: punjabi, alexstrasza, afkah, onyxia, sylvanas, tess, xyrella start concurrently.
-
-**Phase 2 (sequential)**: eudora starts after alexstrasza reports healthy (up to 60 s health timeout).
-
-If the Docker phase fails (WSL unavailable, daemon not ready, or a service fails), Jarvis logs a warning and continues opening the terminal, VS Code, and Chrome. Only a complete Docker/WSL failure aborts the run.
-
-## Command Examples
-
-From Windows PowerShell:
-
-```powershell
-.\dev-setup.ps1 -Mode start
-.\dev-setup.ps1 -Mode debug -ShowConsole
+```bash
+npm install
+npm run tauri dev      # hot-reloads both React and Rust
 ```
 
-From Command Prompt:
+## Build installers
 
-```bat
-dev-setup.bat
+```bash
+npm run tauri build
 ```
 
-Optional flags:
+Produces, under `src-tauri/target/release/bundle/`:
 
-- `-StartupTimeoutSeconds 180`: how long Jarvis waits for service ports
-- `-ChromeDebugPort 9222`: Chrome remote debugging port
-- `-ShowConsole`: prints setup progress in the PowerShell window
-- `-SkipTerminal`: skips Windows Terminal launch
-- `-SkipCode`: skips VS Code launch
-- `-SkipChrome`: skips Chrome launch
-- `-OpenDevTools`: opens DevTools in `start` mode
+- `nsis/Jarvis_<version>_x64-setup.exe` (NSIS installer)
+- `msi/Jarvis_<version>_x64_en-US.msi` (MSI)
 
-## Service Expectations
+## Configuration - `jarvis.config.json`
 
-Jarvis waits for these local ports before opening Chrome:
+All mutable values live here; both the Tauri app and the legacy scripts read it.
 
-- `3000`: api (onyxia)
-- `5173`: frontoffice (tess)
-- `5174`: backoffice (sylvanas)
-- `5175`: showcase (xyrella)
+| Field | Purpose |
+|-------|---------|
+| `version` | App version (window header, tray tooltip) |
+| `projectRoot` / `projectShare` | WSL path / Windows share of Galakrond |
+| `gitPull` | `enabled` + explicit `repos` pulled in parallel before Docker |
+| `dockerPhases` | Ordered startup phases (parallel/sequential + `waitHealthy`) |
+| `services` | Dashboard cards: `port`, `url`, `healthUrl`, `dockerService` |
+| `terminalTabs` | WSL terminal tabs |
+| `chrome` | `userDataDir`, `profileDir`, `debugPort`, `extraUrls` |
+| `paths` | `compass`, `vscode` |
 
-If some ports do not come up before the timeout, Jarvis logs a warning and opens Chrome anyway. Only a zero-services situation is a hard failure.
+`services[].dockerService` links a dashboard card (e.g. `api`) to the
+`dockerPhases` service backing it (e.g. `onyxia`), enabling per-service restart.
 
-## Chrome Session
+## Docker phases
 
-Chrome opens with the real user profile (`%LOCALAPPDATA%\Google\Chrome\User Data`, profile `Profile 10`) and loads:
+Services start in ordered phases, each parallel or sequential, with optional
+health gating:
 
-1. Gmail
-2. bo.fitdesk.io
-3. Jira board
-4. Mailcatcher (localhost:1080)
-5. frontoffice (localhost:5173)
-6. backoffice (localhost:5174)
-7. showcase (localhost:5175)
+1. **infrastructure** (parallel): afkah (mongo), alexstrasza (redis), punjabi
+2. **mail** (sequential): eudora, after afkah + alexstrasza are healthy
+3. **api** (sequential): onyxia
+4. **frontends** (parallel): xyrella, sylvanas, tess
 
-In debug mode, Chrome also exposes a remote debugging port (default 9222) and Jarvis opens DevTools for each tab.
+A WSL/Docker preflight failure aborts the boot; individual service failures are
+surfaced in the progress panel.
 
-## Logging
+## Updating the app icon
 
-Every run appends entries to `dev-setup.log`. Open it from the tray menu (Open Log) or inspect it after a failed run. The log includes version, mode, Docker output, port wait status, and Chrome launch details.
+The icon is generated from `jarvis-icon.png` (square, >=1024px):
 
-## Concurrency Protection
+```bash
+npm run tauri -- icon jarvis-icon.png
+cp src-tauri/icons/icon.ico jarvis.ico            # keep the tray in sync
+cp src-tauri/icons/128x128@2x.png public/jarvis-icon.png   # header logo
+```
 
-Jarvis uses a named mutex (`Local\JarvisGalakrondSetup`) to prevent two setup runs from executing concurrently. If another instance is starting, the second run exits immediately.
+## Legacy PowerShell launcher
 
-## Troubleshooting
-
-If the launcher does not behave as expected:
-
-- use **Start (console)** from the tray to see live output
-- open **Open Log** from the tray to inspect `dev-setup.log`
-- verify that `wt`, `code`, and `chrome.exe` are available
-- confirm the Galakrond repository exists at `/home/admin/galakrond`
-- verify Docker Desktop is running and WSL2 integration is enabled
-- check that the expected local ports are not blocked by another process
-
-If Chrome opens but DevTools do not:
-
-- try another debugging port with `-ChromeDebugPort`
-- rerun in **Debug Start** mode with **Start (console)**
+The original PowerShell solution (`dev-setup.ps1`, `jarvis-tray.ps1`,
+`jarvis-tray.vbs`, `dev-setup.bat`) is kept in the repo during the transition and
+remains fully functional. It will be retired once the Tauri app is the daily
+driver.
