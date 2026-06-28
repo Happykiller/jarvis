@@ -1,5 +1,5 @@
 {
-  "version": "1.7.1",
+  "version": "2.0.0",
   "projectRoot": "/home/admin/galakrond",
   "projectShare": "\\\\wsl.localhost\\Debian\\home\\admin\\galakrond",
   "gitPull": {
@@ -63,10 +63,10 @@
     }
   ],
   "services": [
-    { "name": "api",        "port": 3000, "url": null,                    "healthUrl": "http://localhost:3000/graphql" },
-    { "name": "backoffice", "port": 5174, "url": "http://localhost:5174/","healthUrl": "http://localhost:5174/"         },
-    { "name": "frontoffice","port": 5173, "url": "http://localhost:5173/","healthUrl": "http://localhost:5173/"         },
-    { "name": "showcase",   "port": 5175, "url": "http://localhost:5175/","healthUrl": "http://localhost:5175/"         }
+    { "name": "api",        "port": 3000, "url": null,                    "healthUrl": "http://localhost:3000/graphql", "dockerService": "onyxia"   },
+    { "name": "backoffice", "port": 5174, "url": "http://localhost:5174/","healthUrl": "http://localhost:5174/",         "dockerService": "sylvanas" },
+    { "name": "frontoffice","port": 5173, "url": "http://localhost:5173/","healthUrl": "http://localhost:5173/",         "dockerService": "tess"     },
+    { "name": "showcase",   "port": 5175, "url": "http://localhost:5175/","healthUrl": "http://localhost:5175/",         "dockerService": "xyrella"  }
   ],
   "terminalTabs": [
     { "title": "Claude",  "command": "claude" }

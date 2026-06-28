@@ -3,3 +3,12 @@
 .claude/stop-hook-ran.flag
 .codex
 dev-setup.log
+logs/
+
+# Node / Vite frontend
+node_modules/
+dist/
+
+# Tauri / Rust backend
+src-tauri/target/
+src-tauri/gen/

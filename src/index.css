@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-jarvis-bg: #0a0e1a;
+  --color-jarvis-panel: #121829;
+  --color-jarvis-accent: #38bdf8;
+  --color-jarvis-up: #22c55e;
+  --color-jarvis-down: #ef4444;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: #e2e8f0;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(56, 189, 248, 0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(168, 85, 247, 0.1), transparent 60%),
+    #0a0e1a;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow-x: hidden;
+}
+
+/* Soft pulsing dot used on "up" services. */
+@keyframes jarvis-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+.jarvis-pulse {
+  animation: jarvis-pulse 1.8s ease-in-out infinite;
+}

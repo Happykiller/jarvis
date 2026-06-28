@@ -1,0 +1,26 @@
+[package]
+name = "jarvis"
+version = "2.0.0"
+description = "Jarvis - Galakrond dev environment launcher"
+authors = ["Fabrice Rosito"]
+edition = "2021"
+
+[lib]
+# The `_lib` suffix keeps the lib name unique so it does not clash with the
+# bin name on Windows (see rust-lang/cargo#8519).
+name = "jarvis_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-ico"] }
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "process", "io-util"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+futures = "0.3"

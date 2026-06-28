@@ -8,6 +8,83 @@ Jarvis is a **Windows automation launcher** (PowerShell + VBS) that bootstraps t
 
 The actual product codebase lives in WSL2 at `/home/admin/galakrond`.
 
+## Migration in progress: Tauri app (branch `feat/tauri-app`)
+
+Jarvis is being rebuilt as a **Tauri 2 + React 19 + Tailwind 4** desktop app to
+replace the PowerShell tray + WinForms status window. The legacy `.ps1` files
+still work and stay until the port is complete.
+
+- **Frontend** `src/` - React dashboard (Tailwind 4 via `@tailwindcss/vite`,
+  Framer Motion). `src/lib/api.ts` wraps Tauri `invoke`; `src/lib/tts.ts` is the
+  Web Speech greeting; `src/types.ts` mirrors the Rust structs (camelCase).
+- **Backend** `src-tauri/src/` - `config.rs` (reads the SAME
+  `jarvis.config.json`, serde `rename_all = "camelCase"`), `health.rs` (async
+  TCP + HTTP probes, ports the `Test-Port`/`Test-HealthUrl` rules), `lib.rs`
+  (tray, single-instance plugin, `load_config` + `check_services` commands).
+- **Dev**: `npm install` then `npm run tauri dev`. Cargo must be on PATH
+  (`$env:USERPROFILE\.cargo\bin`). Prereqs: Rust (rustup) + MSVC C++ Build Tools
+  (`winget install Microsoft.VisualStudio.2022.BuildTools` with the VCTools
+  workload) + WebView2 (present on Win11).
+
+### Tauri/Windows gotchas found
+- `jarvis.config.json` is located by probing CWD, CWD/.., exe dir, exe/.. (in
+  `tauri dev` the CWD is `src-tauri`, so it sits one level up). It is bundled as
+  a Tauri `resources` entry for release builds.
+- ServiceStatus/Config Rust structs need `#[serde(rename_all = "camelCase")]` or
+  the React types (`latencyMs`, `healthUrl`) won't match.
+- `reqwest::Client` has no `Default` impl - build with
+  `.unwrap_or_else(|_| reqwest::Client::new())`.
+- Window close is overridden to hide-to-tray (`WindowEvent::CloseRequested` +
+  `api.prevent_close()`); quit only via the tray menu.
+- `start_environment` (orchestrator.rs) ports the PS boot 1:1: preflight,
+  parallel `git pull --ff-only` with failure classification, ordered
+  `dockerPhases` (parallel `join_all` / sequential, `waitHealthy` via
+  `docker inspect`). It streams an `orchestration` Tauri event per step
+  (`{ phase, service, status, message }`); the React `useOrchestration` hook +
+  `ProgressPanel` render the live timeline. WSL calls go through
+  `run_cmd("wsl", ["bash","-c", script])` - don't name a private helper `run`
+  (collides with the public `orchestrator::run` entry point).
+- `tauri dev` hot-reloads Rust edits (rebuild + relaunch the window). An empty
+  dev-output log usually means a rebuild is mid-flight; a manual `cargo check`
+  will print "Blocking waiting for file lock" while dev holds the build lock.
+- `launchers.rs` runs at the end of the boot (best-effort, phase "apps"):
+  Windows Terminal tabs (`wt`), VS Code (`cmd /c code <share>` - `code` is a
+  .cmd shim, can't `Command::new("code")` directly), MongoDB Compass, Chrome
+  (profile + extraUrls + service URLs). `config::expand_env` resolves `%VAR%`.
+- Tray icon loads `jarvis.ico` via `Image::from_path` (tauri feature
+  `image-ico`), located by `locate_asset` (dev: repo root via `config::locate`;
+  installed: `resource_dir()`, where a bundled `../foo` lands in `_up_/foo`).
+  Falls back to the bundled icon. Branding all bundle icons needs a 1024x1024
+  PNG source for `tauri icon`.
+- App icon (v2.0.0+): source is `jarvis-icon.png` (1254x1254 cyan orb). Regenerate
+  all icons with `npm run tauri -- icon jarvis-icon.png` (fills `src-tauri/icons/`).
+  Then copy `src-tauri/icons/icon.ico` -> root `jarvis.ico` so the tray matches,
+  and `src-tauri/icons/128x128@2x.png` -> `public/jarvis-icon.png` for the header.
+  The window/taskbar icon is also set at runtime in `setup()` via
+  `win.set_icon(Image::from_path(jarvis.ico))`, so it updates without a rebuild;
+  the embedded exe/installer icon updates on the next `tauri build`.
+- Autostart-at-login uses `tauri-plugin-autostart` (trait
+  `tauri_plugin_autostart::ManagerExt` -> `app.autolaunch()`), toggled by a tray
+  `CheckMenuItem` "Lancer au demarrage". Replaces the old `jarvis-tray.vbs`
+  startup hack. Rust-side calls need no capability entry (only JS invoke does).
+- Bundled sidecars: `jarvis.config.json` + `jarvis.ico` are listed under
+  `bundle.resources`; in an installed build `config::load` finds the config via
+  `JARVIS_CONFIG`, set in `setup()` from `locate_asset`. Build the installer with
+  `npm run tauri build` (MSI via WiX + NSIS .exe, both auto-downloaded).
+- Per-service restart: each dashboard `services` entry has a `dockerService`
+  field linking it to its `dockerPhases` service (api->onyxia, backoffice->
+  sylvanas, frontoffice->tess, showcase->xyrella). `restart_service(name)`
+  re-runs that service's command; the `ServiceCard` shows a restart button only
+  when `dockerService` is set.
+- Real-time logs: `orchestrator::run_streaming` spawns wsl with piped
+  stdout/stderr (tokio `io-util`) and emits one `orchestration` event per line
+  with `status: "log"`; `ProgressPanel` renders those as dim monospace lines.
+  Used by `start_service` (boot + restart). git pull stays captured (needs the
+  full output to classify failures).
+- Roadmap: Phases 1-3 DONE (scaffold, orchestration, launchers, tray, autostart,
+  installer, per-service restart, live logs). Remaining: retire the
+  `.ps1`/`.vbs`/`.bat` scripts once the Tauri app is the daily driver.
+
 ## Jarvis Files
 
 | File | Purpose |
