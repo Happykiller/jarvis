@@ -4,6 +4,7 @@
 //! `Start-ChromeForServices` helpers. Each launch is best-effort and never
 //! aborts the boot; results stream as `orchestration` events on phase "apps".
 
+use std::os::windows::process::CommandExt;
 use std::process::Command;
 
 use tauri::AppHandle;
@@ -13,15 +14,26 @@ use crate::orchestrator::emit;
 
 const PHASE: &str = "apps";
 
+/// WSL distro backing the project (Windows Terminal profile + VS Code remote).
+const WSL_DISTRO: &str = "Debian";
+
+/// Windows `CREATE_NO_WINDOW` - suppresses the console for helper spawns.
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
 const CHROME_CANDIDATES: [&str; 2] = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
 ];
 
 /// Mirrors PS `New-WslCommand`: cd into the project then run the command,
-/// dropping into an interactive shell afterwards so the tab stays open.
+/// dropping into an interactive shell afterwards so the tab stays open. An empty
+/// command opens a plain shell in the project dir (the "free" tab).
 fn wsl_command(project_root: &str, command: &str) -> String {
-    format!("cd {project_root} && {command} && exec bash || exec bash")
+    if command.trim().is_empty() {
+        format!("cd {project_root} && exec bash")
+    } else {
+        format!("cd {project_root} && {command} && exec bash || exec bash")
+    }
 }
 
 fn ok(app: &AppHandle, name: &str) {
@@ -46,7 +58,7 @@ fn launch_terminal(app: &AppHandle, cfg: &Config) {
         args.push("--title".into());
         args.push(tab.title.clone());
         args.push("--profile".into());
-        args.push("Debian".into());
+        args.push(WSL_DISTRO.into());
         args.push("--".into());
         args.push("bash".into());
         args.push("-lic".into());
@@ -60,17 +72,25 @@ fn launch_terminal(app: &AppHandle, cfg: &Config) {
 }
 
 fn launch_vscode(app: &AppHandle, cfg: &Config) {
-    let Some(share) = &cfg.project_share else {
-        return;
-    };
     let code = cfg
         .paths
         .as_ref()
         .and_then(|p| p.vscode.clone())
         .unwrap_or_else(|| "code".into());
 
-    // `code` is a .cmd shim, so it must be invoked through cmd.exe.
-    match Command::new("cmd").args(["/c", code.as_str(), share.as_str()]).spawn() {
+    // Open the project as a proper Remote-WSL workspace via its folder URI rather
+    // than the `\\wsl.localhost` UNC share. The UNC path makes VS Code auto-reopen
+    // in WSL and pop a separate `wsl.exe` console; the URI starts the server
+    // headlessly instead.
+    let folder_uri = format!("vscode-remote://wsl+{WSL_DISTRO}{}", cfg.project_root);
+
+    // `code` is a .cmd shim, so it must be invoked through cmd.exe. CREATE_NO_WINDOW
+    // suppresses the wrapper console that would otherwise flash/stay open.
+    match Command::new("cmd")
+        .args(["/c", code.as_str(), "--folder-uri", folder_uri.as_str()])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+    {
         Ok(_) => ok(app, "VS Code"),
         Err(e) => warn(app, "VS Code", format!("echec: {e}")),
     }

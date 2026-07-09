@@ -334,6 +334,65 @@ async fn run_phase(app: &AppHandle, phase: &DockerPhase) -> Result<(), String> {
     Ok(())
 }
 
+/// Waits for the browsable services (those with a `url`) to actually answer
+/// before the companion apps launch, so Chrome tabs don't load against a
+/// not-yet-listening port. Reuses the `health` probes (healthUrl, TCP fallback).
+/// Non-fatal like the PowerShell `Wait-ForPorts`: on timeout it warns and lets
+/// the boot proceed.
+async fn wait_for_services_ready(app: &AppHandle, cfg: &Config) {
+    let wanted: Vec<&str> = cfg
+        .services
+        .iter()
+        .filter(|s| s.url.is_some())
+        .map(|s| s.name.as_str())
+        .collect();
+    if wanted.is_empty() {
+        return;
+    }
+
+    emit(
+        app,
+        "services",
+        None,
+        "started",
+        Some(format!("Attente de disponibilite ({} services)", wanted.len())),
+    );
+
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(120);
+    loop {
+        let statuses = crate::health::probe_all(&cfg.services).await;
+        let pending: Vec<String> = statuses
+            .iter()
+            .filter(|s| s.url.is_some() && s.health == crate::health::Health::Down)
+            .map(|s| s.name.clone())
+            .collect();
+
+        if pending.is_empty() {
+            emit(app, "services", None, "ok", Some("Services prets".into()));
+            return;
+        }
+
+        if tokio::time::Instant::now() >= deadline {
+            emit(
+                app,
+                "services",
+                None,
+                "warn",
+                Some(format!(
+                    "Timeout: {} (lancement des apps quand meme)",
+                    pending.join(", ")
+                )),
+            );
+            return;
+        }
+
+        for name in &pending {
+            emit(app, "services", Some(name), "info", Some("en attente".into()));
+        }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+}
+
 /// Full boot sequence: preflight -> git pull -> ordered docker phases.
 pub async fn run(app: AppHandle, cfg: Config) -> Result<(), String> {
     preflight(&app).await?;
@@ -348,7 +407,9 @@ pub async fn run(app: AppHandle, cfg: Config) -> Result<(), String> {
         run_phase(&app, phase).await?;
     }
 
-    // Stack is up - launch the Windows companion apps (best-effort).
+    // Wait for the browsable services to answer, then launch the Windows
+    // companion apps (best-effort).
+    wait_for_services_ready(&app, &cfg).await;
     crate::launchers::launch_all(&app, &cfg);
 
     emit(&app, "done", None, "ok", Some("Environnement demarre".into()));

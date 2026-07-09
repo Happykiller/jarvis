@@ -44,13 +44,29 @@ still work and stay until the port is complete.
   `ProgressPanel` render the live timeline. WSL calls go through
   `run_cmd("wsl", ["bash","-c", script])` - don't name a private helper `run`
   (collides with the public `orchestrator::run` entry point).
+- After the docker phases and BEFORE `launchers::launch_all`, `run()` calls
+  `wait_for_services_ready` (phase `"services"`): it polls `health::probe_all`
+  every 1s until every browsable service (those with a `url`) answers, or a 120s
+  deadline. Non-fatal like the PS `Wait-ForPorts` - on timeout it warns and
+  launches the apps anyway. This gate is what stops Chrome opening 5173/5174/5175
+  before Vite/NestJS are HTTP-ready (a `make dev-up` returning != listening).
 - `tauri dev` hot-reloads Rust edits (rebuild + relaunch the window). An empty
   dev-output log usually means a rebuild is mid-flight; a manual `cargo check`
   will print "Blocking waiting for file lock" while dev holds the build lock.
 - `launchers.rs` runs at the end of the boot (best-effort, phase "apps"):
-  Windows Terminal tabs (`wt`), VS Code (`cmd /c code <share>` - `code` is a
-  .cmd shim, can't `Command::new("code")` directly), MongoDB Compass, Chrome
-  (profile + extraUrls + service URLs). `config::expand_env` resolves `%VAR%`.
+  Windows Terminal tabs (`wt`), VS Code, MongoDB Compass, Chrome (profile +
+  extraUrls + service URLs). `config::expand_env` resolves `%VAR%`. All tabs in
+  `terminalTabs` are joined with `;` into ONE `wt` call => one window, N tabs; a
+  tab with an empty `command` opens a plain shell in `projectRoot` (the "free"
+  tab). The WSL distro is the `WSL_DISTRO` const (`Debian`).
+- VS Code launch gotcha: `code` is a .cmd shim so it MUST go through `cmd /c`
+  (can't `Command::new("code")`), but that cmd wrapper pops a console window - so
+  spawn it with `.creation_flags(CREATE_NO_WINDOW)` (0x08000000, needs
+  `use std::os::windows::process::CommandExt`). AND open the project via its
+  Remote-WSL folder URI (`--folder-uri vscode-remote://wsl+Debian<projectRoot>`),
+  NOT the `\\wsl.localhost\...` UNC share: the UNC path makes VS Code auto-reopen
+  in WSL and spawn a SECOND stray `wsl.exe` console. URI => headless server, no
+  extra window. (`project_share` is now unused by launchers but kept in config.)
 - Tray icon loads `jarvis.ico` via `Image::from_path` (tauri feature
   `image-ico`), located by `locate_asset` (dev: repo root via `config::locate`;
   installed: `resource_dir()`, where a bundled `../foo` lands in `_up_/foo`).
@@ -81,6 +97,32 @@ still work and stay until the port is complete.
   with `status: "log"`; `ProgressPanel` renders those as dim monospace lines.
   Used by `start_service` (boot + restart). git pull stays captured (needs the
   full output to classify failures).
+- Autostart internals: the tray toggle calls `auto-launch` (v0.5.0, via plugin
+  2.5.1), which writes TWO HKCU entries - a String value under
+  `...\CurrentVersion\Run` named after `package_info().name` (= productName
+  `Jarvis`), data `"<exe> "` (format `"{} {}"` with empty args -> trailing
+  space); AND a REG_BINARY under `...\Explorer\StartupApproved\Run` (same name)
+  with the 12-byte enabled marker (last 8 bytes zero). `is_enabled()` requires
+  BOTH (Run value exists AND StartupApproved last-8-bytes are zero). Installed
+  exe lives at `%LOCALAPPDATA%\Jarvis\jarvis.exe`.
+- The OLD launcher's autostart was a Startup-folder shortcut
+  `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Jarvis.lnk` ->
+  `wscript.exe jarvis-tray.vbs` (NOT a registry Run key). Removing it is the
+  clean way to stop the legacy tray at login; sweep scheduled tasks + all
+  Run/RunOnce keys to confirm no other remnants.
+- Claude Code's auto-mode classifier BLOCKS direct registry Run writes as
+  "unauthorized persistence" even when the user asked for it. To enable
+  autostart, launch the installed app and click the tray "Lancer au demarrage"
+  toggle (the intended path) rather than scripting the registry.
+- "No tray icon" is usually NOT an app bug. The `TrayIconBuilder::build(app)?`
+  in `lib.rs` setup() returns `?`, so if the icon failed to create the process
+  would exit. If `jarvis.exe` is running (check `Get-Process jarvis`), the tray
+  icon IS registered - Win11 just hides new icons in the overflow (`^` chevron).
+  Fix: Settings > Personalization > Taskbar > "Other system tray icons" > toggle
+  Jarvis on (or drag it out of the overflow). Only if it's absent from the
+  overflow too is the systray cache corrupt (restart explorer.exe to refresh).
+  Diagnose order: process alive? -> HKCU Run\Jarvis + StartupApproved last-8-zero
+  (autostart on?) -> then it's a Windows visibility setting, not code.
 - Roadmap: Phases 1-3 DONE (scaffold, orchestration, launchers, tray, autostart,
   installer, per-service restart, live logs). Remaining: retire the
   `.ps1`/`.vbs`/`.bat` scripts once the Tauri app is the daily driver.

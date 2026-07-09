@@ -69,7 +69,8 @@
     { "name": "showcase",   "port": 5175, "url": "http://localhost:5175/","healthUrl": "http://localhost:5175/",         "dockerService": "xyrella"  }
   ],
   "terminalTabs": [
-    { "title": "Claude",  "command": "claude" }
+    { "title": "Claude",     "command": "claude" },
+    { "title": "Galakrond",  "command": "" }
   ],
   "paths": {
     "compass": "%LOCALAPPDATA%\\MongoDBCompass\\MongoDBCompass.exe",
