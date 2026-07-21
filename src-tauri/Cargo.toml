@@ -1,6 +1,6 @@
 [package]
 name = "jarvis"
-version = "2.1.0"
+version = "2.3.1"
 description = "Jarvis - Galakrond dev environment launcher"
 authors = ["Fabrice Rosito"]
 edition = "2021"
@@ -24,3 +24,4 @@ serde_json = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "process", "io-util"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 futures = "0.3"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

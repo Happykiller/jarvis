@@ -5,6 +5,7 @@ export interface ServiceDef {
   port: number;
   url: string | null;
   healthUrl: string | null;
+  container: string | null;
   dockerService: string | null;
 }
 
@@ -50,6 +51,12 @@ export interface Progress {
   service: string | null;
   status: ProgressStatus;
   message: string | null;
+}
+
+export interface LogMeta {
+  name: string;
+  modifiedMs: number;
+  sizeBytes: number;
 }
 
 export type Health = "up" | "down";

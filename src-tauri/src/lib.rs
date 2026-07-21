@@ -4,6 +4,7 @@
 mod config;
 mod health;
 mod launchers;
+mod logger;
 mod orchestrator;
 
 use std::path::PathBuf;
@@ -46,6 +47,28 @@ async fn restart_service(app: tauri::AppHandle, name: String) -> Result<(), Stri
     orchestrator::restart(app, &cfg, &name).await
 }
 
+/// Lists the persisted run logs, newest first.
+#[tauri::command]
+async fn list_logs() -> Vec<logger::LogMeta> {
+    logger::list()
+}
+
+/// Reads one run log by file name.
+#[tauri::command]
+async fn read_log(name: String) -> Result<String, String> {
+    logger::read(&name)
+}
+
+/// Reveals the log directory in the OS file explorer.
+#[tauri::command]
+fn open_logs_dir(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let dir = logger::dir().ok_or("repertoire de logs non initialise")?;
+    app.opener()
+        .open_path(dir.to_string_lossy().into_owned(), None::<String>)
+        .map_err(|e| e.to_string())
+}
+
 /// Brings the main window to the foreground, creating focus from the tray.
 fn show_main_window(app: &tauri::AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
@@ -82,6 +105,13 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .setup(|app| {
+            // Resolve a writable log directory (per-user AppData in installed
+            // builds, a Tauri-managed path in dev) so orchestration events are
+            // persisted and reviewable in the app.
+            if let Ok(dir) = app.path().app_log_dir() {
+                logger::set_dir(dir);
+            }
+
             // Make the bundled config discoverable in an installed build.
             if config::locate_config().is_none() {
                 if let Some(p) = locate_asset(app, "jarvis.config.json") {
@@ -160,7 +190,10 @@ pub fn run() {
             load_config,
             check_services,
             start_environment,
-            restart_service
+            restart_service,
+            list_logs,
+            read_log,
+            open_logs_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

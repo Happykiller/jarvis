@@ -68,6 +68,12 @@ pub struct DockerPhase {
     pub wait_healthy: Vec<String>,
     #[serde(default)]
     pub health_timeout_seconds: Option<u64>,
+    /// When true, a failure in this phase is non-fatal: the boot logs a warning
+    /// and continues with the next phase (degraded start) instead of aborting.
+    /// Prerequisite phases (infrastructure) leave this false so a missing
+    /// database/daemon still stops the boot.
+    #[serde(default)]
+    pub optional: bool,
     pub services: Vec<PhaseService>,
 }
 
@@ -78,6 +84,11 @@ pub struct PhaseService {
     pub command: String,
     #[serde(default)]
     pub network: Option<String>,
+    /// When true, this service failing does not fail its phase (warn + continue).
+    /// Lets a non-critical member (e.g. mailcatcher) sit in an otherwise
+    /// blocking phase without taking the whole boot down.
+    #[serde(default)]
+    pub optional: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,6 +100,11 @@ pub struct ServiceDef {
     pub url: Option<String>,
     #[serde(default)]
     pub health_url: Option<String>,
+    /// Docker container name to health-check via `docker inspect` when the
+    /// service has no HTTP endpoint or TCP port (e.g. a background worker like
+    /// eudora). Takes priority over the TCP port probe, below `health_url`.
+    #[serde(default)]
+    pub container: Option<String>,
     /// Name of the `dockerPhases` service backing this one, enabling restart.
     #[serde(default)]
     pub docker_service: Option<String>,

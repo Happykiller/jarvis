@@ -60,7 +60,7 @@ export function ServiceCard({ status, onRestart }: Props) {
             status.url ? "cursor-pointer hover:text-jarvis-accent" : "cursor-default",
           ].join(" ")}
         >
-          :{status.port}
+          {status.port > 0 ? `:${status.port}` : "docker"}
         </button>
 
         <div className="flex items-center gap-2">

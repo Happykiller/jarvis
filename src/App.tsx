@@ -6,6 +6,7 @@ import { speak } from "./lib/tts";
 import { useOrchestration } from "./hooks/useOrchestration";
 import { ServiceCard } from "./components/ServiceCard";
 import { ProgressPanel } from "./components/ProgressPanel";
+import { LogsPanel } from "./components/LogsPanel";
 import type { Config, ServiceStatus } from "./types";
 
 const POLL_MS = 4000;
@@ -15,6 +16,7 @@ function App() {
   const [config, setConfig] = useState<Config | null>(null);
   const [statuses, setStatuses] = useState<ServiceStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [logsOpen, setLogsOpen] = useState(false);
   const greeted = useRef(false);
   const orchestration = useOrchestration();
 
@@ -96,6 +98,13 @@ function App() {
           </button>
           <button
             type="button"
+            onClick={() => setLogsOpen(true)}
+            className="rounded-full border border-white/10 px-4 py-1.5 text-sm text-slate-300 transition-colors hover:border-jarvis-accent/50 hover:text-white"
+          >
+            Logs
+          </button>
+          <button
+            type="button"
             onClick={orchestration.start}
             disabled={orchestration.running}
             className="rounded-full bg-jarvis-accent px-5 py-1.5 text-sm font-semibold text-jarvis-bg shadow-lg shadow-jarvis-accent/20 transition-transform hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
@@ -145,6 +154,8 @@ function App() {
         events={orchestration.events}
         onClose={orchestration.dismiss}
       />
+
+      <LogsPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
     </main>
   );
 }

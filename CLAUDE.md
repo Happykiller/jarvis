@@ -44,6 +44,34 @@ still work and stay until the port is complete.
   `ProgressPanel` render the live timeline. WSL calls go through
   `run_cmd("wsl", ["bash","-c", script])` - don't name a private helper `run`
   (collides with the public `orchestrator::run` entry point).
+- Phase failure is per-phase: a phase with `"optional": true` (mail, api,
+  frontends in the config) logs a WARN and the boot continues to the next phase
+  (degraded start - apps still launch, `done` event is `warn` listing the failed
+  phases). Only a non-optional prerequisite phase (infrastructure) aborts the
+  boot via `Err`. This stops one broken service (or a slow first-run image
+  build) from taking the whole environment down. To make a new phase blocking,
+  omit `optional` (defaults false).
+- Per-SERVICE optional (v2.2.1+): a `PhaseService` can also carry
+  `"optional": true` (punjabi/mailcatcher has it). In `run_phase` an optional
+  service that fails only WARNs; it never fails its phase - even inside the
+  otherwise-blocking `infrastructure` phase. This is how mailcatcher sits next
+  to the hard deps (afkah mongo, alexstrasza redis) without its failure aborting
+  the boot. Use it for non-critical members of a fatal phase; use phase-level
+  `optional` when the whole phase is non-critical.
+- Codename->make-target drift: service Makefiles change targets out from under
+  the config. punjabi's `make up` became `make start` (targets now: start/stop/
+  restart/logs/status; `make start` does `docker run -d --rm --name mailcatcher
+  ...`). Symptom in logs: `make: *** No rule to make target 'up'. Stop.` +
+  `exit 2`. When a service's docker command fails with a make error, check the
+  repo's current Makefile targets, don't assume the config command is right.
+- Build feedback: `run_streaming`'s pump watches streamed lines for docker
+  BuildKit markers (`is_build_line`: `[+] Building`, `load build definition`,
+  `=> [`, `exporting to image`) and emits a one-shot `info` ("Build de l'image
+  en cours...") the first time one appears, shared across stdout+stderr via an
+  `Arc<AtomicBool>`. This is why a first boot after a compose gains a `build:`
+  (e.g. eudora's dropped `docker-compose.dev.yml`, merged Jul 2026) shows
+  "building" instead of looking frozen while `docker compose up` blocks on a
+  multi-GB image build.
 - After the docker phases and BEFORE `launchers::launch_all`, `run()` calls
   `wait_for_services_ready` (phase `"services"`): it polls `health::probe_all`
   every 1s until every browsable service (those with a `url`) answers, or a 120s
@@ -123,6 +151,24 @@ still work and stay until the port is complete.
   overflow too is the systray cache corrupt (restart explorer.exe to refresh).
   Diagnose order: process alive? -> HKCU Run\Jarvis + StartupApproved last-8-zero
   (autostart on?) -> then it's a Windows visibility setting, not code.
+- Persisted logs (v2.2.0+): `logger.rs` writes every orchestration event to a
+  rotating file (last 30) under `app_log_dir()`
+  (`%LOCALAPPDATA%\net.happykiller.jarvis\logs` installed). A global
+  `Mutex<Option<File>>` is opened by `logger::start_session(label)` at the top of
+  `orchestrator::run` ("boot") and `restart` ("restart <svc>"), and appended by
+  `logger::write`, called from the `emit` choke point so EVERY streamed event
+  (incl. `log` lines) is captured. `set_dir` is called once in `setup()`.
+  Commands `list_logs` / `read_log(name)` / `open_logs_dir` back the in-app
+  viewer (`LogsPanel.tsx`, opened by the header "Logs" button): runs list left,
+  colored monospace content right. `read_log` rejects names with `/ \ ..` to stay
+  inside the log dir. `open_logs_dir` uses the opener plugin from Rust (no JS
+  capability needed). Needs `chrono` (clock+std) for timestamps.
+- Version bump: the version lives in FOUR files that must stay in sync -
+  `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, and
+  `jarvis.config.json`. Bump all four, then `npm run tauri build` (Cargo.lock
+  updates itself). The installed app bundles its OWN `jarvis.config.json` +
+  binary, so source/config edits only take effect after a rebuild+reinstall (or
+  `npm run tauri dev`, which reads the repo config live).
 - Roadmap: Phases 1-3 DONE (scaffold, orchestration, launchers, tray, autostart,
   installer, per-service restart, live logs). Remaining: retire the
   `.ps1`/`.vbs`/`.bat` scripts once the Tauri app is the daily driver.
@@ -162,7 +208,28 @@ Key fields: `version`, `projectRoot`, `projectShare`, `gitPull` (enabled, repos)
 
 **`gitPull` — repos pulled at startup.** `enabled` toggles the phase; `repos` is the explicit list of WSL repo paths pulled in parallel (`git pull --ff-only`) before Docker. The list is explicit (not derived from `dockerPhases`) because it also includes the `galakrond` root repo, which has no service entry. Failures (dirty tree, diverged branch, no upstream) are logged as WARN and never block startup.
 
-**`dockerPhases` — ordered startup.** An array of phases run in order. Each phase has: `name`, `parallel` (true = Start-Job fan-out, false = one-by-one), `services` (each `name`/`path`/`command`/`network`), and optional `waitHealthy` (array of container names to block on via `docker inspect` health) + `healthTimeoutSeconds` before the phase runs. Order: infrastructure -> mail -> api -> frontends. To reorder or add a service, edit only this array.
+**`dockerPhases` — ordered startup.** An array of phases run in order. Each phase has: `name`, `parallel` (true = Start-Job fan-out, false = one-by-one), `services` (each `name`/`path`/`command`/`network`, plus optional per-service `optional`) and optional `waitHealthy` (array of container names to block on via `docker inspect` health) + `healthTimeoutSeconds` + phase-level `optional`. Order: infrastructure -> mail -> api -> frontends. To reorder or add a service, edit only this array.
+
+**Two DISTINCT lists — `dockerPhases` (start) vs `services` (display).** These are
+independent and easy to confuse. `dockerPhases` is what to BOOT (8 services).
+`services` is what the dashboard shows and health-probes — the Tauri UI renders
+one `ServiceCard` per `services` entry (via `check_services` ->
+`health::probe_all(cfg.services)`), NOT per docker service. A container started
+by `dockerPhases` but absent from `services` runs invisibly. As of v2.3.0
+`services` lists all 8 (4 apps + mongo/redis/mailcatcher/eudora). Each entry:
+`name`, `port`, `url` (clickable + joins the pre-launch `wait_for_services_ready`
+gate), `healthUrl`, optional `container`, `dockerService` (restart target).
+Probe priority in `health.rs`: `healthUrl` (HTTP, any status = up) ->
+`container` (`docker inspect --format {{.State.Running}}` via `wsl`; args passed
+straight to wsl so the braces need no quoting) -> TCP `port`. eudora is probed
+via HTTP on 8025 (eudora-dev exposes `0.0.0.0:8025->8000`; GET / = 404 which
+still proves it listens) - NOT the container-state fallback. `container` stays
+as a general escape hatch for any genuinely port-less container (`port: 0` +
+card shows "docker" instead of `:0`); nothing uses it right now. Infra ports
+(27017/6379/1080/8025) are reachable from the Windows side via WSL2 localhost
+forwarding, so the probes work from the app. Gotcha that bit us: check a
+container's ACTUAL `docker ps` Ports column before assuming it's port-less -
+eudora-dev's 8025 was there all along.
 
 ## PowerShell Rules
 

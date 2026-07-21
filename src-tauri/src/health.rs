@@ -6,7 +6,9 @@
 //! * When a `healthUrl` exists, ANY HTTP response - including 4xx/5xx - means
 //!   "listening" (GET /graphql returns 400 but proves NestJS is up). Only a
 //!   refused/timed-out connection means "not ready".
-//! * Without a `healthUrl` we fall back to a plain TCP port check.
+//! * Without a `healthUrl` but with a `container`, we ask Docker whether that
+//!   container is running (for port-less workers like eudora).
+//! * Otherwise we fall back to a plain TCP port check.
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -53,14 +55,32 @@ async fn test_health_url(client: &reqwest::Client, url: &str) -> bool {
     client.get(url).send().await.is_ok()
 }
 
-/// Probes a single service, preferring its `healthUrl`, falling back to TCP.
+/// Asks Docker (through WSL) whether a container is running. Used for services
+/// with no listening port, like the eudora background worker. Args are passed
+/// directly to `wsl` (no shell) so the `{{...}}` format string needs no quoting.
+async fn test_container(name: &str) -> bool {
+    match tokio::process::Command::new("wsl")
+        .args(["docker", "inspect", name, "--format", "{{.State.Running}}"])
+        .output()
+        .await
+    {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "true",
+        Err(_) => false,
+    }
+}
+
+/// Probes a single service: `healthUrl` (HTTP) first, then a `container` state
+/// check, else a plain TCP port connect.
 pub async fn probe(client: &reqwest::Client, svc: &ServiceDef) -> ServiceStatus {
     let started = tokio::time::Instant::now();
     let timeout = Duration::from_millis(1500);
 
-    let up = match &svc.health_url {
-        Some(url) => test_health_url(client, url).await,
-        None => test_port(svc.port, timeout).await,
+    let up = if let Some(url) = &svc.health_url {
+        test_health_url(client, url).await
+    } else if let Some(container) = &svc.container {
+        test_container(container).await
+    } else {
+        test_port(svc.port, timeout).await
     };
 
     ServiceStatus {

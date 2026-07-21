@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-import type { Config, ServiceStatus } from "../types";
+import type { Config, LogMeta, ServiceStatus } from "../types";
 
 /** Loads the parsed jarvis.config.json from the Rust backend. */
 export function loadConfig(): Promise<Config> {
@@ -20,4 +20,19 @@ export function startEnvironment(): Promise<void> {
 /** Restarts a single service by name; progress streams via "orchestration". */
 export function restartService(name: string): Promise<void> {
   return invoke<void>("restart_service", { name });
+}
+
+/** Lists the persisted run logs, newest first. */
+export function listLogs(): Promise<LogMeta[]> {
+  return invoke<LogMeta[]>("list_logs");
+}
+
+/** Reads one run log by file name. */
+export function readLog(name: string): Promise<string> {
+  return invoke<string>("read_log", { name });
+}
+
+/** Reveals the log directory in the OS file explorer. */
+export function openLogsDir(): Promise<void> {
+  return invoke<void>("open_logs_dir");
 }

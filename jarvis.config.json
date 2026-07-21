@@ -1,5 +1,5 @@
 {
-  "version": "2.1.0",
+  "version": "2.3.1",
   "projectRoot": "/home/admin/galakrond",
   "projectShare": "\\\\wsl.localhost\\Debian\\home\\admin\\galakrond",
   "gitPull": {
@@ -33,12 +33,13 @@
       "services": [
         { "name": "afkah",       "path": "/home/admin/galakrond/afkah",       "command": "make dev-up", "network": "afkah"       },
         { "name": "alexstrasza", "path": "/home/admin/galakrond/alexstrasza", "command": "make dev-up", "network": "alexstrasza" },
-        { "name": "punjabi",     "path": "/home/admin/punjabi",               "command": "make up",     "network": null          }
+        { "name": "punjabi",     "path": "/home/admin/punjabi",               "command": "make start",  "network": null, "optional": true }
       ]
     },
     {
       "name": "mail",
       "parallel": false,
+      "optional": true,
       "waitHealthy": ["afkah", "alexstrasza"],
       "healthTimeoutSeconds": 60,
       "services": [
@@ -48,6 +49,7 @@
     {
       "name": "api",
       "parallel": false,
+      "optional": true,
       "services": [
         { "name": "onyxia", "path": "/home/admin/galakrond/onyxia", "command": "make dev-up", "network": null }
       ]
@@ -55,6 +57,7 @@
     {
       "name": "frontends",
       "parallel": true,
+      "optional": true,
       "services": [
         { "name": "xyrella",  "path": "/home/admin/galakrond/xyrella",  "command": "make dev-up", "network": null },
         { "name": "sylvanas", "path": "/home/admin/galakrond/sylvanas", "command": "make dev-up", "network": null },
@@ -66,7 +69,11 @@
     { "name": "api",        "port": 3000, "url": null,                    "healthUrl": "http://localhost:3000/graphql", "dockerService": "onyxia"   },
     { "name": "backoffice", "port": 5174, "url": "http://localhost:5174/","healthUrl": "http://localhost:5174/",         "dockerService": "sylvanas" },
     { "name": "frontoffice","port": 5173, "url": "http://localhost:5173/","healthUrl": "http://localhost:5173/",         "dockerService": "tess"     },
-    { "name": "showcase",   "port": 5175, "url": "http://localhost:5175/","healthUrl": "http://localhost:5175/",         "dockerService": "xyrella"  }
+    { "name": "showcase",   "port": 5175, "url": "http://localhost:5175/","healthUrl": "http://localhost:5175/",         "dockerService": "xyrella"  },
+    { "name": "mongo",       "port": 27017, "url": null,                     "healthUrl": null,                    "dockerService": "afkah"       },
+    { "name": "redis",       "port": 6379,  "url": null,                     "healthUrl": null,                    "dockerService": "alexstrasza" },
+    { "name": "mailcatcher", "port": 1080,  "url": "http://localhost:1080/", "healthUrl": "http://localhost:1080/","dockerService": "punjabi"     },
+    { "name": "eudora",      "port": 8025,  "url": null,                     "healthUrl": "http://localhost:8025/","dockerService": "eudora" }
   ],
   "terminalTabs": [
     { "title": "Claude",     "command": "claude" },

@@ -4,6 +4,8 @@
 //! as `orchestration` events instead of writing to a log window.
 
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use serde::Serialize;
@@ -33,6 +35,9 @@ pub(crate) fn emit(
     status: &str,
     message: Option<String>,
 ) {
+    // Persist to the current log file first (choke point for every event), then
+    // stream it to the UI.
+    crate::logger::write(phase, service, status, message.as_deref());
     let _ = app.emit(
         EVENT,
         Progress {
@@ -60,13 +65,42 @@ async fn run_cmd(program: &str, args: &[&str]) -> (i32, String) {
     }
 }
 
-/// Reads a child pipe line by line, emitting each as a "log" event.
-async fn pump<R: AsyncRead + Unpin>(app: AppHandle, phase: String, service: String, reader: R) {
+/// Recognizes docker/BuildKit image-build output so a long first-run build
+/// (which makes `docker compose up` block for minutes) can be surfaced to the
+/// UI instead of looking frozen.
+fn is_build_line(line: &str) -> bool {
+    line.contains("[+] Building")
+        || line.contains("load build definition")
+        || line.contains("=> [")
+        || line.contains("exporting to image")
+}
+
+/// Reads a child pipe line by line, emitting each as a "log" event. The first
+/// time a build line is seen (shared across stdout+stderr via `build_announced`)
+/// it also emits a one-shot "info" so the user knows a multi-minute image build
+/// is underway rather than a hang.
+async fn pump<R: AsyncRead + Unpin>(
+    app: AppHandle,
+    phase: String,
+    service: String,
+    reader: R,
+    build_announced: Arc<AtomicBool>,
+) {
     let mut lines = BufReader::new(reader).lines();
     while let Ok(Some(line)) = lines.next_line().await {
-        if !line.trim().is_empty() {
-            emit(&app, &phase, Some(&service), "log", Some(line));
+        if line.trim().is_empty() {
+            continue;
         }
+        if is_build_line(&line) && !build_announced.swap(true, Ordering::SeqCst) {
+            emit(
+                &app,
+                &phase,
+                Some(&service),
+                "info",
+                Some("Build de l'image en cours (premiere fois, peut durer plusieurs minutes)".into()),
+            );
+        }
+        emit(&app, &phase, Some(&service), "log", Some(line));
     }
 }
 
@@ -88,6 +122,7 @@ async fn run_streaming(app: &AppHandle, phase: &str, service: &str, script: &str
 
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();
+    let build_announced = Arc::new(AtomicBool::new(false));
     let mut pumps = Vec::new();
     if let Some(out) = stdout {
         pumps.push(tokio::spawn(pump(
@@ -95,6 +130,7 @@ async fn run_streaming(app: &AppHandle, phase: &str, service: &str, script: &str
             phase.to_string(),
             service.to_string(),
             out,
+            build_announced.clone(),
         )));
     }
     if let Some(err) = stderr {
@@ -103,6 +139,7 @@ async fn run_streaming(app: &AppHandle, phase: &str, service: &str, script: &str
             phase.to_string(),
             service.to_string(),
             err,
+            build_announced.clone(),
         )));
     }
 
@@ -289,6 +326,7 @@ pub async fn restart(app: AppHandle, cfg: &Config, dashboard_name: &str) -> Resu
         .find(|ps| ps.name == docker_name)
         .ok_or_else(|| format!("service docker introuvable: {docker_name}"))?;
 
+    crate::logger::start_session(&format!("restart {docker_name}"));
     emit(&app, "restart", Some(&docker_name), "started", Some("Redemarrage".into()));
     start_service(&app, "restart", phase_svc).await?;
     emit(&app, "restart", None, "ok", Some(format!("{docker_name} redemarre")));
@@ -315,18 +353,37 @@ async fn run_phase(app: &AppHandle, phase: &DockerPhase) -> Result<(), String> {
             let app = app.clone();
             let phase_name = phase.name.clone();
             let svc = svc.clone();
-            async move { start_service(&app, &phase_name, &svc).await }
+            async move {
+                let res = start_service(&app, &phase_name, &svc).await;
+                (svc.name.clone(), svc.optional, res)
+            }
         });
         let results = futures::future::join_all(tasks).await;
-        let failed: Vec<String> = results.into_iter().filter_map(|r| r.err()).collect();
-        if !failed.is_empty() {
-            let msg = format!("Phase '{}' en echec", phase.name);
+        // Only non-optional failures fail the phase; optional ones just warn.
+        let mut hard_failed: Vec<String> = Vec::new();
+        for (name, optional, res) in results {
+            if let Err(e) = res {
+                if optional {
+                    emit(app, &phase.name, Some(&name), "warn", Some(format!("optionnel, ignore ({e})")));
+                } else {
+                    hard_failed.push(name);
+                }
+            }
+        }
+        if !hard_failed.is_empty() {
+            let msg = format!("Phase '{}' en echec ({})", phase.name, hard_failed.join(", "));
             emit(app, &phase.name, None, "error", Some(msg.clone()));
             return Err(msg);
         }
     } else {
         for svc in &phase.services {
-            start_service(app, &phase.name, svc).await?;
+            if let Err(e) = start_service(app, &phase.name, svc).await {
+                if svc.optional {
+                    emit(app, &phase.name, Some(&svc.name), "warn", Some(format!("optionnel, ignore ({e})")));
+                } else {
+                    return Err(e);
+                }
+            }
         }
     }
 
@@ -395,6 +452,7 @@ async fn wait_for_services_ready(app: &AppHandle, cfg: &Config) {
 
 /// Full boot sequence: preflight -> git pull -> ordered docker phases.
 pub async fn run(app: AppHandle, cfg: Config) -> Result<(), String> {
+    crate::logger::start_session("boot");
     preflight(&app).await?;
 
     if let Some(gp) = &cfg.git_pull {
@@ -403,8 +461,26 @@ pub async fn run(app: AppHandle, cfg: Config) -> Result<(), String> {
         }
     }
 
+    // Run each phase in order. A failure in an `optional` phase (mail, api,
+    // frontends) is non-fatal: we log a warning and keep going so a single
+    // broken service can't take the rest of the environment down with it. Only
+    // a non-optional prerequisite phase (infrastructure) aborts the boot.
+    let mut degraded: Vec<String> = Vec::new();
     for phase in &cfg.docker_phases {
-        run_phase(&app, phase).await?;
+        if let Err(e) = run_phase(&app, phase).await {
+            if phase.optional {
+                emit(
+                    &app,
+                    &phase.name,
+                    None,
+                    "warn",
+                    Some(format!("Phase '{}' en echec, on continue ({e})", phase.name)),
+                );
+                degraded.push(phase.name.clone());
+            } else {
+                return Err(e);
+            }
+        }
     }
 
     // Wait for the browsable services to answer, then launch the Windows
@@ -412,6 +488,19 @@ pub async fn run(app: AppHandle, cfg: Config) -> Result<(), String> {
     wait_for_services_ready(&app, &cfg).await;
     crate::launchers::launch_all(&app, &cfg);
 
-    emit(&app, "done", None, "ok", Some("Environnement demarre".into()));
+    if degraded.is_empty() {
+        emit(&app, "done", None, "ok", Some("Environnement demarre".into()));
+    } else {
+        emit(
+            &app,
+            "done",
+            None,
+            "warn",
+            Some(format!(
+                "Environnement demarre en mode degrade (echec: {})",
+                degraded.join(", ")
+            )),
+        );
+    }
     Ok(())
 }
