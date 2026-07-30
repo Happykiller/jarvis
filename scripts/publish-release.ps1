@@ -45,6 +45,15 @@ Set-Location $RepoRoot
 function Write-Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 function Fail($msg) { Write-Host "ERROR: $msg" -ForegroundColor Red; exit 1 }
 
+# Run a native command (gh/npm) with the stop-on-error preference relaxed, so a
+# tool that writes to stderr but succeeds does not abort the script. Callers must
+# inspect $LASTEXITCODE afterwards. Returns the command's stdout.
+function Invoke-Native([scriptblock] $Script) {
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { & $Script } finally { $ErrorActionPreference = $prev }
+}
+
 # --- Preflight ---------------------------------------------------------------
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     Fail "gh (GitHub CLI) not found on PATH. Install it and run 'gh auth login'."
@@ -59,7 +68,7 @@ $tag = "v$version"
 Write-Step "Publishing Jarvis $version (tag $tag) to $RELEASES_REPO"
 
 # Refuse to overwrite an existing release for this tag.
-$existing = gh release view $tag --repo $RELEASES_REPO 2>$null
+Invoke-Native { gh release view $tag --repo $RELEASES_REPO 1>$null 2>$null }
 if ($LASTEXITCODE -eq 0) {
     Fail "Release $tag already exists on $RELEASES_REPO. Bump the version first."
 }
@@ -72,7 +81,7 @@ if (-not $SkipBuild) {
     Write-Step "Building installers (npm run tauri build)"
     $cargoBin = Join-Path $env:USERPROFILE ".cargo\bin"
     if (Test-Path $cargoBin) { $env:PATH = "$cargoBin;$env:PATH" }
-    npm run tauri build
+    Invoke-Native { npm run tauri build }
     if ($LASTEXITCODE -ne 0) { Fail "tauri build failed (exit $LASTEXITCODE)" }
 } else {
     Write-Step "Skipping build (-SkipBuild)"
@@ -150,9 +159,9 @@ $ghArgs = @(
 )
 if ($Draft) { $ghArgs += "--draft" }
 
-& gh @ghArgs
+Invoke-Native { & gh @ghArgs }
 if ($LASTEXITCODE -ne 0) { Fail "gh release create failed (exit $LASTEXITCODE)" }
 
-$url = gh release view $tag --repo $RELEASES_REPO --json url --jq ".url"
+$url = Invoke-Native { gh release view $tag --repo $RELEASES_REPO --json url --jq ".url" }
 Write-Step "Done. Release: $url"
 if ($Draft) { Write-Host "This is a DRAFT - review it, then publish from the GitHub UI or with 'gh release edit $tag --repo $RELEASES_REPO --draft=false'." -ForegroundColor Yellow }
