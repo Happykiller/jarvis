@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+# Base de connaissance
+
+La mémoire longue du projet est dans [`docs/KB/`](docs/KB/README.md) :
+architecture technique ([`DAT/`](docs/KB/DAT/README.md)), architecture fonctionnelle
+([`DAF/`](docs/KB/DAF/README.md)), règles du projet ([`REGLES/`](docs/KB/REGLES/README.md)),
+outillage ([`MOTEUR.md`](docs/KB/MOTEUR.md)) et historique des sujets
+([`HISTORY.md`](docs/KB/HISTORY.md)).
+
+**Avant d'agir sur un sujet, consulte l'index concerné.** Les pages `REGLES/lois.md` et
+`REGLES/consignes.md` sont contraignantes : elles priment sur tes défauts.
+
+À la fin d'une session ayant produit un apprentissage, lance `/capitalize`.
+
 ## What Is Jarvis?
 
 Jarvis is a **Windows automation launcher** (PowerShell + VBS) that bootstraps the entire **Galakrond** development environment. It runs as a system tray application and automates the complex setup of a multi-service fitness coaching SaaS platform running in WSL2.
