@@ -1,5 +1,18 @@
 {
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"C:\\DATA\\projects\\jarvis\\.claude\\hooks\\validate-ps1.ps1\"",
+            "timeout": 15,
+            "statusMessage": "Validating PowerShell syntax..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
