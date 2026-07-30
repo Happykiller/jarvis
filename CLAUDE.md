@@ -170,12 +170,25 @@ still work and stay until the port is complete.
   colored monospace content right. `read_log` rejects names with `/ \ ..` to stay
   inside the log dir. `open_logs_dir` uses the opener plugin from Rust (no JS
   capability needed). Needs `chrono` (clock+std) for timestamps.
-- Version bump: the version lives in FOUR files that must stay in sync -
-  `package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, and
-  `jarvis.config.json`. Bump all four, then `npm run tauri build` (Cargo.lock
-  updates itself). The installed app bundles its OWN `jarvis.config.json` +
-  binary, so source/config edits only take effect after a rebuild+reinstall (or
-  `npm run tauri dev`, which reads the repo config live).
+- Version bump: the version really lives in SIX spots that must stay in sync -
+  the 4 source-of-truth files (`package.json`, `src-tauri/Cargo.toml`,
+  `src-tauri/tauri.conf.json`, `jarvis.config.json`) PLUS the two lockfiles:
+  `src-tauri/Cargo.lock` (the `[[package]] name = "jarvis"` entry) and
+  `package-lock.json` (TWO occurrences at the top: root `version` + the `""`
+  package). The lockfiles do NOT self-update on a plain `npm run tauri build`, and
+  `package-lock.json` in particular keeps drifting stale (seen at 1.7.1 then 2.1.0
+  while the app was 2.3.x) - edit all six by hand. The installed app bundles its
+  OWN `jarvis.config.json` + binary, so source/config edits only take effect after
+  a rebuild+reinstall (or `npm run tauri dev`, which reads the repo config live).
+- Dependency upgrades (done Jul 2026, v2.3.3): safe "stability" bumps = `npm update`
+  (in-range patches/minors) + `cargo update` (rewrites Cargo.lock to latest
+  semver-compatible, ~93 crates, no manifest edit). `cargo-outdated` is NOT
+  installed - use `cargo update --dry-run` to preview. Majors taken: vite 7->8,
+  @vitejs/plugin-react 4->6, framer-motion 11->12 (package `framer-motion` still
+  publishes v12, `from "framer-motion"` imports unchanged - no code churn). Held
+  back: TypeScript (5.8, NOT 7 - TS7 is the new native/Go compiler, too fresh for a
+  stability pass). Always `npm run tauri build` after to confirm Vite + crates still
+  compile before shipping.
 - Roadmap: Phases 1-3 DONE (scaffold, orchestration, launchers, tray, autostart,
   installer, per-service restart, live logs). Remaining: retire the
   `.ps1`/`.vbs`/`.bat` scripts once the Tauri app is the daily driver.
