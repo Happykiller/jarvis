@@ -1,5 +1,5 @@
 {
-  "version": "2.3.1",
+  "version": "2.3.2",
   "projectRoot": "/home/admin/galakrond",
   "projectShare": "\\\\wsl.localhost\\Debian\\home\\admin\\galakrond",
   "gitPull": {
@@ -22,8 +22,7 @@
     "extraUrls": [
       "https://mail.google.com/",
       "https://bo.fitdesk.io/",
-      "https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34",
-      "http://localhost:1080/"
+      "https://dreamteamfitdesk.atlassian.net/jira/software/projects/FC/boards/34"
     ]
   },
   "dockerPhases": [
@@ -75,10 +74,7 @@
     { "name": "mailcatcher", "port": 1080,  "url": "http://localhost:1080/", "healthUrl": "http://localhost:1080/","dockerService": "punjabi"     },
     { "name": "eudora",      "port": 8025,  "url": null,                     "healthUrl": "http://localhost:8025/","dockerService": "eudora" }
   ],
-  "terminalTabs": [
-    { "title": "Claude",     "command": "claude" },
-    { "title": "Galakrond",  "command": "" }
-  ],
+  "terminalTabs": [],
   "paths": {
     "compass": "%LOCALAPPDATA%\\MongoDBCompass\\MongoDBCompass.exe",
     "vscode": "code"

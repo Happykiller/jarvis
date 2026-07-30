@@ -4,6 +4,7 @@
 //! `Start-ChromeForServices` helpers. Each launch is best-effort and never
 //! aborts the boot; results stream as `orchestration` events on phase "apps".
 
+use std::collections::HashSet;
 use std::os::windows::process::CommandExt;
 use std::process::Command;
 
@@ -129,9 +130,17 @@ fn launch_chrome(app: &AppHandle, cfg: &Config) {
         args.push(format!("--profile-directory={profile}"));
     }
 
-    // Extra URLs first, then every service that exposes a browsable URL.
-    args.extend(chrome.extra_urls.iter().cloned());
-    args.extend(cfg.services.iter().filter_map(|s| s.url.clone()));
+    // Extra URLs first, then every service that exposes a browsable URL - deduped,
+    // order preserved, so an overlap between extraUrls and a service url (e.g.
+    // mailcatcher on 1080) never opens the same tab twice.
+    let mut seen: HashSet<String> = HashSet::new();
+    let urls = chrome
+        .extra_urls
+        .iter()
+        .cloned()
+        .chain(cfg.services.iter().filter_map(|s| s.url.clone()))
+        .filter(|u| seen.insert(u.clone()));
+    args.extend(urls);
 
     match Command::new(exe).args(&args).spawn() {
         Ok(_) => ok(app, "Chrome"),
