@@ -86,7 +86,14 @@ still work and stay until the port is complete.
   extraUrls + service URLs). `config::expand_env` resolves `%VAR%`. All tabs in
   `terminalTabs` are joined with `;` into ONE `wt` call => one window, N tabs; a
   tab with an empty `command` opens a plain shell in `projectRoot` (the "free"
-  tab). The WSL distro is the `WSL_DISTRO` const (`Debian`).
+  tab). The WSL distro is the `WSL_DISTRO` const (`Debian`). `terminalTabs: []`
+  disables the terminal entirely (`launch_terminal` early-returns on empty, no
+  `wt` spawned) - the intended way to stop launching the Claude/free tabs (v2.3.2).
+- Chrome tabs are deduped (v2.3.2): `launch_chrome` chains `extraUrls` + service
+  `url`s through a `HashSet` (first occurrence wins, order preserved), so listing
+  a service url in `extraUrls` too (mailcatcher's `localhost:1080` used to be in
+  both) no longer opens the tab twice. Put a browsable service's url ONLY in its
+  `services` entry, not also in `extraUrls`.
 - VS Code launch gotcha: `code` is a .cmd shim so it MUST go through `cmd /c`
   (can't `Command::new("code")`), but that cmd wrapper pops a console window - so
   spawn it with `.creation_flags(CREATE_NO_WINDOW)` (0x08000000, needs
