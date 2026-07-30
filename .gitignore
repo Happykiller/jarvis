@@ -12,3 +12,6 @@ dist/
 # Tauri / Rust backend
 src-tauri/target/
 src-tauri/gen/
+
+# Release staging (renamed artifacts uploaded to jarvis-releases)
+dist-release/

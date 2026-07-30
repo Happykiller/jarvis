@@ -12,6 +12,15 @@ each service's health.
 
 ![Jarvis](public/jarvis-icon.png)
 
+## Download
+
+Built installers (MSI + NSIS `setup.exe`) are published on the dedicated releases
+repo: **[github.com/Happykiller/jarvis-releases](https://github.com/Happykiller/jarvis-releases/releases/latest)**.
+
+Releases are produced from this repo with
+[`scripts/publish-release.ps1`](scripts/publish-release.ps1) (see
+[Release process](#release-process)).
+
 ## Features
 
 - **Live dashboard** - every service shown as a card (online/offline, port,
@@ -77,6 +86,28 @@ Produces, under `src-tauri/target/release/bundle/`:
 
 - `nsis/Jarvis_<version>_x64-setup.exe` (NSIS installer)
 - `msi/Jarvis_<version>_x64_en-US.msi` (MSI)
+
+## Release process
+
+Distribution follows a dedicated **releases repo** model (like
+[koa-releases](https://github.com/Happykiller/koa-releases)): the public repo
+[`Happykiller/jarvis-releases`](https://github.com/Happykiller/jarvis-releases)
+holds only a README + assets, and each GitHub Release (`vX.Y.Z`) carries the
+installers.
+
+To cut a release from this source repo (requires an authenticated `gh`):
+
+```powershell
+# 1. Bump the version in all 6 files (see CLAUDE.md "Version bump")
+# 2. Publish - builds, hashes, and creates the GitHub release
+./scripts/publish-release.ps1 -NotesFile notes/2.3.3.md -Draft
+```
+
+The script builds the installers, stages renamed copies under `dist-release/`,
+computes their SHA256, and runs `gh release create v<version> --repo
+Happykiller/jarvis-releases` with both artifacts attached and the fingerprints
+appended to the notes. Drop `-Draft` (or publish the draft afterwards) to make it
+public. `-SkipBuild` reuses the existing bundles.
 
 ## Configuration - `jarvis.config.json`
 

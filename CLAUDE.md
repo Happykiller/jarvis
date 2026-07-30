@@ -189,6 +189,19 @@ still work and stay until the port is complete.
   back: TypeScript (5.8, NOT 7 - TS7 is the new native/Go compiler, too fresh for a
   stability pass). Always `npm run tauri build` after to confirm Vite + crates still
   compile before shipping.
+- Release process (v2.3.3+): distribution uses a dedicated PUBLIC releases repo
+  `Happykiller/jarvis-releases` (README + `assets/` only, branch `develop`),
+  mirroring `koa-releases`. Binaries ship as GitHub Releases (`vX.Y.Z`, title
+  `Jarvis <v>`) with TWO assets: `Jarvis-<v>-x64-setup.exe` (NSIS) +
+  `Jarvis-<v>-x64.msi`. No CI - published from the source repo with
+  `scripts/publish-release.ps1` (reads version from jarvis.config.json, builds,
+  stages renamed copies to git-ignored `dist-release/`, SHA256s them, then
+  `gh release create --repo Happykiller/jarvis-releases ... -Draft`). Params:
+  `-SkipBuild`, `-NotesFile <md>`, `-Draft`. The script refuses to overwrite an
+  existing tag - bump the 6 version files first. Note jarvis SOURCES are public
+  (unlike koa's private sources); the releases repo is still separate for a clean
+  download landing. Out of scope for now: CI on tag, tauri-plugin-updater
+  auto-update, code signing, portable ZIP.
 - Roadmap: Phases 1-3 DONE (scaffold, orchestration, launchers, tray, autostart,
   installer, per-service restart, live logs). Remaining: retire the
   `.ps1`/`.vbs`/`.bat` scripts once the Tauri app is the daily driver.
